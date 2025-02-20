@@ -21,9 +21,9 @@ creds_json = os.getenv("GOOGLE_CREDENTIALS")
 if creds_json:
     creds_dict = json.loads(creds_json)
     creds = Credentials.from_service_account_info(creds_dict, scopes=["https://www.googleapis.com/auth/spreadsheets"])
+    return gspread.authorize(creds)
 else:
     raise ValueError("GOOGLE_CREDENTIALS environment variable not found")
-    return gspread.authorize(creds)
 
 client = authenticate_google_sheets()
 sheet = client.open_by_key(SHEET_ID).worksheet(SHEET_NAME)
