@@ -11,21 +11,23 @@ SHEET_ID = "1upehCYwnGEcKg_zVQG7jlnNUykFmvNbuAtnxzqvSEcA"
 SHEET_NAME = "Sheet1"
 
 # Authenticate and connect to Google Sheets
-def authenticate_google_sheets():
 import json
 import os
 import gspread
 from google.oauth2.service_account import Credentials
 
-# Load JSON credentials from the environment variable
-creds_json = os.getenv("GOOGLE_CREDENTIALS")
-if creds_json:
-    creds_dict = json.loads(creds_json)
-    creds = Credentials.from_service_account_info(creds_dict, scopes=["https://www.googleapis.com/auth/spreadsheets"])
-    return gspread.authorize(creds)
-else:
-    raise ValueError("GOOGLE_CREDENTIALS environment variable not found")
+# Authenticate and connect to Google Sheets
+def authenticate_google_sheets():
+    # Load JSON credentials from the environment variable
+    creds_json = os.getenv("GOOGLE_CREDENTIALS")
+    if creds_json:
+        creds_dict = json.loads(creds_json)
+        creds = Credentials.from_service_account_info(creds_dict, scopes=["https://www.googleapis.com/auth/spreadsheets"])
+        return gspread.authorize(creds)
+    else:
+        raise ValueError("GOOGLE_CREDENTIALS environment variable not found")
 
+# Call the function and connect to Google Sheets
 client = authenticate_google_sheets()
 sheet = client.open_by_key(SHEET_ID).worksheet(SHEET_NAME)
 
