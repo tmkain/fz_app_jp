@@ -132,22 +132,21 @@ df = load_data()
 def save_data(new_entries):
     existing_data = sheet.get_all_records()
     
-    # Ensure the DataFrame has all six columns
+    # 🔹 Ensure DataFrame has the correct column structure
     df = pd.DataFrame(existing_data)
 
-    # 🔹 Ensure Google Sheet includes "送信グループID"
     required_columns = ["日付", "名前", "金額", "高速道路", "片道", "送信グループID"]
     
-    # 🔹 If the sheet is empty or missing columns, reset it with proper headers
+    # 🔹 If the sheet is empty or missing columns, reset it with correct headers
     if df.empty or any(col not in df.columns for col in required_columns):
         df = pd.DataFrame(columns=required_columns)  
 
     new_df = pd.DataFrame(new_entries, columns=required_columns)
-    
+
     # Merge new data with existing data
     updated_df = pd.concat([df, new_df], ignore_index=True)
 
-    # Overwrite the Google Sheet with the updated data
+    # 🔹 Overwrite the Google Sheet with the updated data
     sheet.clear()
     sheet.update([updated_df.columns.values.tolist()] + updated_df.values.tolist())
 
