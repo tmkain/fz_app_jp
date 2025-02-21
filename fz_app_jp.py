@@ -3,6 +3,8 @@ import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
+import os
+import json
 
 # ==============================
 # Google Sheets Authentication
@@ -10,15 +12,7 @@ from datetime import datetime
 SHEET_ID = "1upehCYwnGEcKg_zVQG7jlnNUykFmvNbuAtnxzqvSEcA"
 SHEET_NAME = "Sheet1"
 
-# Authenticate and connect to Google Sheets
-import json
-import os
-import gspread
-from google.oauth2.service_account import Credentials
-
-# Authenticate and connect to Google Sheets
 def authenticate_google_sheets():
-    # Load JSON credentials from the environment variable
     creds_json = os.getenv("GOOGLE_CREDENTIALS")
     if creds_json:
         creds_dict = json.loads(creds_json)
@@ -27,9 +21,20 @@ def authenticate_google_sheets():
     else:
         raise ValueError("GOOGLE_CREDENTIALS environment variable not found")
 
-# Call the function and connect to Google Sheets
 client = authenticate_google_sheets()
 sheet = client.open_by_key(SHEET_ID).worksheet(SHEET_NAME)
+
+# ==============================
+# Initialize Session State
+# ==============================
+if "date" not in st.session_state:
+    st.session_state.date = datetime.today()  # Default to today’s date
+if "selected_drivers" not in st.session_state:
+    st.session_state.selected_drivers = []
+if "toll_road" not in st.session_state:
+    st.session_state.toll_road = {}  # Stores 高速道路利用 checkboxes
+if "one_way" not in st.session_state:
+    st.session_state.one_way = {}  # Stores 片道 checkboxes
 
 # ==============================
 # Data Entry Section
@@ -37,28 +42,22 @@ sheet = client.open_by_key(SHEET_ID).worksheet(SHEET_NAME)
 st.title("🚗 Fz 車代管理アプリ")
 st.header("データ入力")
 
-# Session state to handle form reset
-if "reset" not in st.session_state:
-    st.session_state.reset = False
-
 # User Inputs
-date = st.date_input("試合日を選択してください") if not st.session_state.reset else st.empty()
-date_str = date.strftime("%Y-%m-%d") if not st.session_state.reset else ""
-
+st.session_state.date = st.date_input("試合日を選択してください", value=st.session_state.date)
 driver_list = ["平野", "ケイン", "山﨑", "萩原", "仙波し", "仙波ち", "久保田", "落合", "浜島", "野波",
                "末田", "芳本", "鈴木", "山田", "佐久間", "今井", "西川"]
-selected_drivers = st.multiselect("運転手を選択してください", driver_list) if not st.session_state.reset else []
 
-# Reimbursement Options
-amount_options = [200, 400, 600, 800]  # You can change these values here
-amount = st.radio("金額を選択してください", amount_options) if not st.session_state.reset else 200
+st.session_state.selected_drivers = st.multiselect("運転手を選択してください", driver_list, default=st.session_state.selected_drivers)
 
-# Highway & One-way Toggle
-toll_road = {}
-one_way = {}
-for driver in selected_drivers:
-    toll_road[driver] = st.checkbox(f"{driver} の高速道路利用", key=f"toll_{driver}") if not st.session_state.reset else False
-    one_way[driver] = st.checkbox(f"{driver} の片道利用", key=f"one_way_{driver}") if not st.session_state.reset else False
+# Checkbox State Management
+for driver in st.session_state.selected_drivers:
+    if driver not in st.session_state.toll_road:
+        st.session_state.toll_road[driver] = False
+    if driver not in st.session_state.one_way:
+        st.session_state.one_way[driver] = False
+
+    st.session_state.toll_road[driver] = st.checkbox(f"{driver} の高速道路利用", value=st.session_state.toll_road[driver], key=f"toll_{driver}")
+    st.session_state.one_way[driver] = st.checkbox(f"{driver} の片道利用", value=st.session_state.one_way[driver], key=f"one_way_{driver}")
 
 # ==============================
 # Save Data to Google Sheets
@@ -73,20 +72,27 @@ def save_data(new_entries):
 
 # Submit Data
 if st.button("送信"):  
-    if selected_drivers:
-        new_entries = [[date_str, driver, (amount + (1000 if toll_road[driver] else 0)) / (2 if one_way[driver] else 1), 
-                         "あり" if toll_road[driver] else "なし", "あり" if one_way[driver] else "なし"] 
-                        for driver in selected_drivers]
+    if st.session_state.selected_drivers:
+        new_entries = [[st.session_state.date.strftime("%Y-%m-%d"), driver, 
+                        (200 + (1000 if st.session_state.toll_road[driver] else 0)) / (2 if st.session_state.one_way[driver] else 1), 
+                         "あり" if st.session_state.toll_road[driver] else "なし", 
+                         "あり" if st.session_state.one_way[driver] else "なし"] 
+                        for driver in st.session_state.selected_drivers]
         save_data(new_entries)
         st.success("データが保存されました！")
         st.rerun()
     else:
         st.warning("運転手を選択してください。")
 
-# Clear Button
+# ==============================
+# Clear Button Functionality (Resets Everything)
+# ==============================
 if st.button("クリア"):
-    st.session_state.reset = False  # Ensure input fields reset without disappearing
-    st.rerun()
+    st.session_state.date = datetime.today()  # Reset date to today
+    st.session_state.selected_drivers = []  # Clear selected drivers
+    st.session_state.toll_road = {}  # Clear checkboxes
+    st.session_state.one_way = {}  # Clear checkboxes
+    st.rerun()  # Force Streamlit to refresh the UI
 
 # ==============================
 # Monthly Summary Section
