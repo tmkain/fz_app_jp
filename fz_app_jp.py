@@ -235,7 +235,7 @@ if st.button("⏪ 取り消す"):
 # ==============================
 st.header("📥 CSVダウンロード")
 if not df.empty:
-    csv = df.to_csv(index=False, encoding="shift-jis")  # 🔹 Use CP932 (Shift JIS compatible)
+    csv = df.to_csv(index=False, encoding="utf-8-sig")
     st.download_button(label="CSVをダウンロード", data=csv, file_name="fz_data.csv", mime="text/csv")
 
 # ==============================
