@@ -132,18 +132,19 @@ df = load_data()
 def save_data(new_entries):
     existing_data = sheet.get_all_records()
     
-    # 🔹 Ensure DataFrame has the correct column structure
+    # 🔹 Ensure the DataFrame has all six columns
     df = pd.DataFrame(existing_data)
 
     required_columns = ["日付", "名前", "金額", "高速道路", "片道", "送信グループID"]
     
-    # 🔹 If the sheet is empty or missing columns, reset it with correct headers
+    # 🔹 If the sheet is empty or missing columns, reset it with proper headers
     if df.empty or any(col not in df.columns for col in required_columns):
         df = pd.DataFrame(columns=required_columns)  
 
+    # 🔹 Force all new data to match this format
     new_df = pd.DataFrame(new_entries, columns=required_columns)
 
-    # Merge new data with existing data
+    # 🔹 Merge new data with existing data
     updated_df = pd.concat([df, new_df], ignore_index=True)
 
     # 🔹 Overwrite the Google Sheet with the updated data
@@ -240,15 +241,18 @@ if not df.empty:
 # ==============================
 # Done Button (Saves Data & Logs Out)
 # ==============================
-st.markdown("---")  # Adds a horizontal line for visual separation
-if st.button("✅ 完了"):
+if st.button("✅ 完了 (Done)"):
     if st.session_state.selected_drivers:
+        batch_id = int(time.time())  # 🔹 Generates a unique batch ID for this session
+
         new_entries = [[st.session_state.date.strftime("%Y-%m-%d"), driver, 
                         (st.session_state.amount + (1000 if st.session_state.toll_road[driver] else 0)) / (2 if st.session_state.one_way[driver] else 1), 
                          "あり" if st.session_state.toll_road[driver] else "なし", 
-                         "あり" if st.session_state.one_way[driver] else "なし"] 
+                         "あり" if st.session_state.one_way[driver] else "なし",
+                         batch_id]  # 🔹 Adds batch ID
                         for driver in st.session_state.selected_drivers]
-        save_data(new_entries)  # Save data before logout
+
+        save_data(new_entries)  # 🔹 Ensures correct column format
 
     # Reset session & log out user
     st.session_state.logged_in = False
