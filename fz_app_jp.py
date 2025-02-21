@@ -11,8 +11,8 @@ import json
 # ==============================
 
 # 🔐 Use environment variables for better security
-USERNAME = os.getenv("APP_USERNAME", "admin")  # Default: "admin"
-PASSWORD = os.getenv("APP_PASSWORD", "secret123")  # Default: "secret123"
+USERNAME = os.getenv("APP_USERNAME", "kuruma")  # Default: "admin"
+PASSWORD = os.getenv("APP_PASSWORD", "5sho")  # Default: "secret123"
 
 # Centered login screen (takes over full screen)
 st.markdown(
