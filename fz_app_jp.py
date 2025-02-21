@@ -241,7 +241,7 @@ if not df.empty:
 # ==============================
 # Done Button (Saves Data & Logs Out)
 # ==============================
-if st.button("✅ 完了 (Done)"):
+if st.button("✅ 完了"):
     if st.session_state.selected_drivers:
         batch_id = int(time.time())  # 🔹 Generates a unique batch ID for this session
 
