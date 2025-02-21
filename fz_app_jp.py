@@ -10,8 +10,8 @@ import json
 # Secure Full-Screen Login System
 # ==============================
 
-USERNAME = os.getenv("APP_USERNAME", "admin")  
-PASSWORD = os.getenv("APP_PASSWORD", "secret123")  
+USERNAME = os.getenv("APP_USERNAME", "kuruma")  
+PASSWORD = os.getenv("APP_PASSWORD", "5sho")  
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -71,7 +71,7 @@ st.header("データ入力")
 st.session_state.date = st.date_input("試合日を選択してください", value=st.session_state.date)
 
 # Driver selection using a static table
-driver_list = ["平野", "ケイン", "山﨑", "萩原", "仙波し", "仙波ち", "久保田", "落合", "浜島", "野波",
+driver_list = ["平野", "ケイン", "山﨑", "萩原", "仙波し", "仙波ち", "久保", "落合", "浜島", "野波",
                "末田", "芳本", "鈴木", "山田", "佐久間", "今井", "西川"]
 
 st.write("### 運転手を選択してください")
