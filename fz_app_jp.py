@@ -10,29 +10,23 @@ import json
 # Secure Full-Screen Login System
 # ==============================
 
-# 🔐 Use environment variables for better security
-USERNAME = os.getenv("APP_USERNAME", "admin")  # Default: "admin"
-PASSWORD = os.getenv("APP_PASSWORD", "secret123")  # Default: "secret123"
+USERNAME = os.getenv("APP_USERNAME", "admin")  
+PASSWORD = os.getenv("APP_PASSWORD", "secret123")  
 
-# Check if the user is already logged in
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
     st.markdown("<div style='text-align:center'><h2>🔑 ログイン</h2></div>", unsafe_allow_html=True)
-
-    # Login form
     entered_username = st.text_input("ユーザー名", value="", key="username")
     entered_password = st.text_input("パスワード", value="", type="password", key="password")
-
     if st.button("ログイン"):
         if entered_username == USERNAME and entered_password == PASSWORD:
             st.session_state.logged_in = True
-            st.rerun()  # Refresh to show the main app
+            st.rerun()
         else:
             st.error("🚫 ユーザー名またはパスワードが違います")
-
-    st.stop()  # Stop execution here if login fails
+    st.stop()
 
 # ==============================
 # Google Sheets Authentication (Cached)
@@ -40,7 +34,7 @@ if not st.session_state.logged_in:
 SHEET_ID = "1upehCYwnGEcKg_zVQG7jlnNUykFmvNbuAtnxzqvSEcA"
 SHEET_NAME = "Sheet1"
 
-@st.cache_resource  # Cache authentication to avoid reconnecting on every run
+@st.cache_resource
 def get_google_sheet():
     creds_json = os.getenv("GOOGLE_CREDENTIALS")
     if creds_json:
@@ -50,21 +44,21 @@ def get_google_sheet():
     else:
         raise ValueError("GOOGLE_CREDENTIALS environment variable not found")
 
-sheet = get_google_sheet()  # Cached authentication session
+sheet = get_google_sheet()
 
 # ==============================
 # Initialize Session State
 # ==============================
 if "date" not in st.session_state:
-    st.session_state.date = datetime.today()  # Default to today’s date
+    st.session_state.date = datetime.today()
 if "selected_drivers" not in st.session_state:
-    st.session_state.selected_drivers = []
+    st.session_state.selected_drivers = set()  # Use a set to avoid duplicate names
 if "toll_road" not in st.session_state:
-    st.session_state.toll_road = {}  # Stores 高速道路利用 checkboxes
+    st.session_state.toll_road = {}
 if "one_way" not in st.session_state:
-    st.session_state.one_way = {}  # Stores 片道 checkboxes
+    st.session_state.one_way = {}
 if "amount" not in st.session_state:
-    st.session_state.amount = 200  # Default yen amount
+    st.session_state.amount = 200  
 
 # ==============================
 # Data Entry Section
@@ -72,22 +66,22 @@ if "amount" not in st.session_state:
 st.title("🚗 Fz 車代管理アプリ")
 st.header("データ入力")
 
-# User Inputs
 st.session_state.date = st.date_input("試合日を選択してください", value=st.session_state.date)
 
-# Driver selection as a static table (instead of dropdown)
+# Driver selection using a static table (Fixed "None" issue)
 driver_list = ["平野", "ケイン", "山﨑", "萩原", "仙波し", "仙波ち", "久保田", "落合", "浜島", "野波",
                "末田", "芳本", "鈴木", "山田", "佐久間", "今井", "西川"]
 
 st.write("### 運転手を選択してください")
-columns = st.columns(3)  # Display drivers in 3 columns
+columns = st.columns(3)
+new_selected_drivers = set()  # Temporary storage
+
 for i, driver in enumerate(driver_list):
-    with columns[i % 3]:  # Distribute drivers across columns
-        if driver not in st.session_state.selected_drivers:
-            st.session_state.selected_drivers.append(driver) if st.checkbox(driver, key=f"select_{driver}") else None
-        else:
-            if not st.checkbox(driver, key=f"select_{driver}", value=True):
-                st.session_state.selected_drivers.remove(driver)
+    with columns[i % 3]:
+        if st.checkbox(driver, key=f"select_{driver}", value=(driver in st.session_state.selected_drivers)):
+            new_selected_drivers.add(driver)
+
+st.session_state.selected_drivers = new_selected_drivers  # Update session state
 
 # Amount selection (Yen)
 st.session_state.amount = st.radio("金額を選択してください", [200, 400, 600, 800], index=[200, 400, 600, 800].index(st.session_state.amount))
@@ -103,9 +97,8 @@ for driver in st.session_state.selected_drivers:
     st.session_state.one_way[driver] = st.checkbox(f"{driver} の片道利用", value=st.session_state.one_way[driver], key=f"one_way_{driver}")
 
 # ==============================
-# Save Data to Google Sheets (Cached)
+# Load Data from Google Sheets (No Caching for Instant Updates)
 # ==============================
-@st.cache_data(ttl=300)  # Cache data for 5 minutes
 def load_data():
     records = sheet.get_all_records()
     df = pd.DataFrame(records)
@@ -114,8 +107,11 @@ def load_data():
     df["年-月"] = df["日付"].dt.strftime("%Y-%m")
     return df
 
-df = load_data()  # Cached data loads faster
+df = load_data()  # Always loads fresh data
 
+# ==============================
+# Save Data to Google Sheets
+# ==============================
 def save_data(new_entries):
     existing_data = sheet.get_all_records()
     df = pd.DataFrame(existing_data)
@@ -142,15 +138,15 @@ if st.button("送信"):
 # Clear Button Functionality (Resets Everything)
 # ==============================
 if st.button("クリア"):
-    st.session_state.date = datetime.today()  # Reset date to today
-    st.session_state.selected_drivers = []  # Clear selected drivers
-    st.session_state.amount = 200  # Reset amount selection to default
-    st.session_state.toll_road = {}  # Clear checkboxes
-    st.session_state.one_way = {}  # Clear checkboxes
-    st.rerun()  # Force Streamlit to refresh the UI
+    st.session_state.date = datetime.today()
+    st.session_state.selected_drivers = set()  # Use an empty set instead of a list
+    st.session_state.amount = 200  
+    st.session_state.toll_road = {}  
+    st.session_state.one_way = {}  
+    st.rerun()
 
 # ==============================
-# Monthly Summary Section
+# Monthly Summary Section (Updates Instantly)
 # ==============================
 st.header("📊 月ごとの集計")
 
