@@ -7,30 +7,62 @@ import os
 import json
 
 # ==============================
-# Secure Login System
+# Secure Full-Screen Login System
 # ==============================
 
 # 🔐 Use environment variables for better security
-USERNAME = os.getenv("APP_USERNAME", "kuruma")  # Default: "admin"
-PASSWORD = os.getenv("APP_PASSWORD", "5sho")  # Default: "secret123"
+USERNAME = os.getenv("APP_USERNAME", "admin")  # Default: "admin"
+PASSWORD = os.getenv("APP_PASSWORD", "secret123")  # Default: "secret123"
 
-# Create a login form
-st.sidebar.header("🔑 ログイン")
-entered_username = st.sidebar.text_input("ユーザー名", value="", type="default")
-entered_password = st.sidebar.text_input("パスワード", value="", type="password")
+# Centered login screen (takes over full screen)
+st.markdown(
+    """
+    <style>
+    .stTextInput, .stButton {
+        text-align: center;
+    }
+    .login-box {
+        max-width: 350px;
+        margin: auto;
+        padding: 2rem;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        background: white;
+        text-align: center;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
-# Check login credentials
-if entered_username != USERNAME or entered_password != PASSWORD:
-    st.sidebar.warning("🚫 ユーザー名またはパスワードが違います")
-    st.stop()  # Stop the app if the login is incorrect
-else:
-    st.sidebar.success("✅ ログイン成功！")
+# Check if the user is already logged in
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+if not st.session_state.logged_in:
+    st.markdown("<div class='login-box'>", unsafe_allow_html=True)
+    st.header("🔑 ログイン")
+
+    # Login form
+    entered_username = st.text_input("ユーザー名", value="", key="username")
+    entered_password = st.text_input("パスワード", value="", type="password", key="password")
+
+    if st.button("ログイン"):
+        if entered_username == USERNAME and entered_password == PASSWORD:
+            st.session_state.logged_in = True
+            st.experimental_rerun()  # Refresh to show the main app
+        else:
+            st.error("🚫 ユーザー名またはパスワードが違います")
+    
+    st.markdown("</div>", unsafe_allow_html=True)
+    st.stop()  # Stop execution here if login fails
 
 # ==============================
-# Google Sheets Authentication
+# Google Sheets Authentication (Runs only after login)
 # ==============================
 SHEET_ID = "1upehCYwnGEcKg_zVQG7jlnNUykFmvNbuAtnxzqvSEcA"
 SHEET_NAME = "Sheet1"
+
 
 def authenticate_google_sheets():
     creds_json = os.getenv("GOOGLE_CREDENTIALS")
