@@ -11,37 +11,15 @@ import json
 # ==============================
 
 # 🔐 Use environment variables for better security
-USERNAME = os.getenv("APP_USERNAME", "kuruma")  # Default: "admin"
-PASSWORD = os.getenv("APP_PASSWORD", "5sho")  # Default: "secret123"
-
-# Centered login screen (takes over full screen)
-st.markdown(
-    """
-    <style>
-    .stTextInput, .stButton {
-        text-align: center;
-    }
-    .login-box {
-        max-width: 350px;
-        margin: auto;
-        padding: 2rem;
-        border-radius: 10px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        background: white;
-        text-align: center;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+USERNAME = os.getenv("APP_USERNAME", "admin")  # Default: "admin"
+PASSWORD = os.getenv("APP_PASSWORD", "secret123")  # Default: "secret123"
 
 # Check if the user is already logged in
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
-    st.markdown("<div class='login-box'>", unsafe_allow_html=True)
-    st.header("🔑 ログイン")
+    st.markdown("<div style='text-align:center'><h2>🔑 ログイン</h2></div>", unsafe_allow_html=True)
 
     # Login form
     entered_username = st.text_input("ユーザー名", value="", key="username")
@@ -53,8 +31,7 @@ if not st.session_state.logged_in:
             st.rerun()  # Refresh to show the main app
         else:
             st.error("🚫 ユーザー名またはパスワードが違います")
-    
-    st.markdown("</div>", unsafe_allow_html=True)
+
     st.stop()  # Stop execution here if login fails
 
 # ==============================
@@ -62,7 +39,6 @@ if not st.session_state.logged_in:
 # ==============================
 SHEET_ID = "1upehCYwnGEcKg_zVQG7jlnNUykFmvNbuAtnxzqvSEcA"
 SHEET_NAME = "Sheet1"
-
 
 def authenticate_google_sheets():
     creds_json = os.getenv("GOOGLE_CREDENTIALS")
@@ -87,6 +63,8 @@ if "toll_road" not in st.session_state:
     st.session_state.toll_road = {}  # Stores 高速道路利用 checkboxes
 if "one_way" not in st.session_state:
     st.session_state.one_way = {}  # Stores 片道 checkboxes
+if "amount" not in st.session_state:
+    st.session_state.amount = 200  # Default yen amount
 
 # ==============================
 # Data Entry Section
@@ -100,6 +78,9 @@ driver_list = ["平野", "ケイン", "山﨑", "萩原", "仙波し", "仙波�
                "末田", "芳本", "鈴木", "山田", "佐久間", "今井", "西川"]
 
 st.session_state.selected_drivers = st.multiselect("運転手を選択してください", driver_list, default=st.session_state.selected_drivers)
+
+# Amount selection (restored)
+st.session_state.amount = st.radio("金額を選択してください", [200, 400, 600, 800], index=[200, 400, 600, 800].index(st.session_state.amount))
 
 # Checkbox State Management
 for driver in st.session_state.selected_drivers:
@@ -126,7 +107,7 @@ def save_data(new_entries):
 if st.button("送信"):  
     if st.session_state.selected_drivers:
         new_entries = [[st.session_state.date.strftime("%Y-%m-%d"), driver, 
-                        (200 + (1000 if st.session_state.toll_road[driver] else 0)) / (2 if st.session_state.one_way[driver] else 1), 
+                        (st.session_state.amount + (1000 if st.session_state.toll_road[driver] else 0)) / (2 if st.session_state.one_way[driver] else 1), 
                          "あり" if st.session_state.toll_road[driver] else "なし", 
                          "あり" if st.session_state.one_way[driver] else "なし"] 
                         for driver in st.session_state.selected_drivers]
@@ -142,6 +123,7 @@ if st.button("送信"):
 if st.button("クリア"):
     st.session_state.date = datetime.today()  # Reset date to today
     st.session_state.selected_drivers = []  # Clear selected drivers
+    st.session_state.amount = 200  # Reset amount selection to default
     st.session_state.toll_road = {}  # Clear checkboxes
     st.session_state.one_way = {}  # Clear checkboxes
     st.rerun()  # Force Streamlit to refresh the UI
