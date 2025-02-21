@@ -227,7 +227,7 @@ def undo_last_submission():
     st.success(f"✅ 送信が取り消されました: {last_batch['名前'].tolist()} ({last_batch['日付'].iloc[0]})")
     st.rerun()
 
-if st.button("⏪ 取り消す (Undo Last Submission)"):
+if st.button("⏪ 取り消す"):
     undo_last_submission()
 
 # ==============================
@@ -242,7 +242,7 @@ if not df.empty:
 # Done Button (Saves Data & Logs Out)
 # ==============================
 st.markdown("---")  # Adds a horizontal line for visual separation
-if st.button("✅ 完了 (Done)"):
+if st.button("✅ 完了"):
     if st.session_state.selected_drivers:
         new_entries = [[st.session_state.date.strftime("%Y-%m-%d"), driver, 
                         (st.session_state.amount + (1000 if st.session_state.toll_road[driver] else 0)) / (2 if st.session_state.one_way[driver] else 1), 
