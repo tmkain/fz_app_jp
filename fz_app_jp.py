@@ -12,8 +12,9 @@ SHEET_NAME = "Sheet1"
 
 # Authenticate and connect to Google Sheets
 def authenticate_google_sheets():
-    import json
+import json
 import os
+import gspread
 from google.oauth2.service_account import Credentials
 
 # Load JSON credentials from the environment variable
