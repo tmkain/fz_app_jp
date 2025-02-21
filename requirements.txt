@@ -2,11 +2,5 @@ streamlit
 pandas
 gspread
 google-auth
-google-auth-oauthlib
 google-auth-httplib2
-numpy
-requests
-protobuf
-pillow
-python-dateutil
-altair
+google-auth-oauthlib
