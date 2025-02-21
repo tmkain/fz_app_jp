@@ -231,12 +231,24 @@ if st.button("⏪ 取り消す"):
     undo_last_submission()
 
 # ==============================
-# CSV Download Option (Shift JIS Encoding for Japanese)
+# CSV Download Option (JIS Encoding for Japanese)
 # ==============================
+import io
+
 st.header("📥 CSVダウンロード")
 if not df.empty:
-    csv = df.to_csv(index=False, encoding="utf-8-sig")
-    st.download_button(label="CSVをダウンロード", data=csv, file_name="fz_data.csv", mime="text/csv")
+    # 🔹 Convert DataFrame to CSV with Shift JIS encoding
+    csv_buffer = io.StringIO()
+    df.to_csv(csv_buffer, index=False, encoding="cp932", errors="ignore")  # CP932 = Shift JIS for Windows
+    csv_data = csv_buffer.getvalue().encode("cp932")  # 🔹 Encode properly
+
+    # 🔹 Download button
+    st.download_button(
+        label="CSVをダウンロード",
+        data=csv_data,
+        file_name="fz_data.csv",
+        mime="text/csv"
+    )
 
 # ==============================
 # Done Button (Saves Data & Logs Out)
