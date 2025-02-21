@@ -5,13 +5,14 @@ from google.oauth2.service_account import Credentials
 from datetime import datetime
 import os
 import json
+import time
 
 # ==============================
 # Secure Full-Screen Login System
 # ==============================
 
-USERNAME = os.getenv("APP_USERNAME", "kuruma")  
-PASSWORD = os.getenv("APP_PASSWORD", "5sho")  
+USERNAME = os.getenv("APP_USERNAME")  
+PASSWORD = os.getenv("APP_PASSWORD")  
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -139,11 +140,15 @@ def save_data(new_entries):
 # Submit Data
 if st.button("送信"):  
     if st.session_state.selected_drivers:
+        batch_id = int(time.time())  # 🔹 Generates a unique batch ID for this submission
+
         new_entries = [[st.session_state.date.strftime("%Y-%m-%d"), driver, 
                         (st.session_state.amount + (1000 if st.session_state.toll_road[driver] else 0)) / (2 if st.session_state.one_way[driver] else 1), 
                          "あり" if st.session_state.toll_road[driver] else "なし", 
-                         "あり" if st.session_state.one_way[driver] else "なし"] 
+                         "あり" if st.session_state.one_way[driver] else "なし",
+                         batch_id]  # 🔹 Adds the batch ID to each row
                         for driver in st.session_state.selected_drivers]
+
         save_data(new_entries)
         st.success("データが保存されました！")
         st.rerun()
@@ -176,9 +181,77 @@ else:
     st.write(summary)
 
 # ==============================
+# Undo Last Submission Button
+# ==============================
+def undo_last_submission():
+    records = sheet.get_all_records()
+    df = pd.DataFrame(records)
+
+    if df.empty:
+        st.warning("🚨 取り消すデータがありません。")
+        return
+
+    # Find the last batch by using the most recent "送信グループID"
+    if "送信グループID" not in df.columns:
+        st.error("🚨 '送信グループID' が見つかりません。シートのフォーマットを確認してください。")
+        return
+
+    last_batch_id = df["送信グループID"].max()  # Get the highest (most recent) batch ID
+    last_batch = df[df["送信グループID"] == last_batch_id]  # Get all rows in this batch
+
+    if last_batch.empty:
+        st.warning("🚨 取り消すデータがありません。")
+        return
+
+    # Remove only the rows from the last batch
+    df = df[df["送信グループID"] != last_batch_id]
+
+    # Update Google Sheet (overwrite with filtered data)
+    sheet.clear()
+    sheet.update([df.columns.values.tolist()] + df.values.tolist())
+
+    st.success(f"✅ 送信が取り消されました: {last_batch['名前'].tolist()} ({last_batch['日付'].iloc[0]})")
+    st.rerun()
+
+if st.button("⏪ 取り消す (Undo Last Submission)"):
+    undo_last_submission()
+
+# ==============================
 # CSV Download Option
 # ==============================
 st.header("📥 CSVダウンロード")
 if not df.empty:
     csv = df.to_csv(index=False).encode("utf-8")
     st.download_button(label="CSVをダウンロード", data=csv, file_name="fz_data.csv", mime="text/csv")
+
+# ==============================
+# CSV Download Option
+# ==============================
+st.header("📥 CSVダウンロード")
+if not df.empty:
+    csv = df.to_csv(index=False).encode("utf-8")
+    st.download_button(label="CSVをダウンロード", data=csv, file_name="fz_data.csv", mime="text/csv")
+
+# ==============================
+# Done Button (Saves Data & Logs Out)
+# ==============================
+st.markdown("---")  # Adds a horizontal line for visual separation
+if st.button("✅ 完了 (Done)"):
+    if st.session_state.selected_drivers:
+        new_entries = [[st.session_state.date.strftime("%Y-%m-%d"), driver, 
+                        (st.session_state.amount + (1000 if st.session_state.toll_road[driver] else 0)) / (2 if st.session_state.one_way[driver] else 1), 
+                         "あり" if st.session_state.toll_road[driver] else "なし", 
+                         "あり" if st.session_state.one_way[driver] else "なし"] 
+                        for driver in st.session_state.selected_drivers]
+        save_data(new_entries)  # Save data before logout
+
+    # Reset session & log out user
+    st.session_state.logged_in = False
+    st.session_state.selected_drivers = set()
+    st.session_state.confirmed_drivers = False
+    st.session_state.amount = 200  
+    st.session_state.toll_road = {}  
+    st.session_state.one_way = {}  
+
+    st.success("✅ データが保存されました。ログアウトしました。")
+    st.rerun()  # Redirect to login screen
