@@ -52,7 +52,9 @@ sheet = get_google_sheet()
 if "date" not in st.session_state:
     st.session_state.date = datetime.today()
 if "selected_drivers" not in st.session_state:
-    st.session_state.selected_drivers = set()  # Use a set to avoid duplicate names
+    st.session_state.selected_drivers = set()
+if "confirmed_drivers" not in st.session_state:
+    st.session_state.confirmed_drivers = False
 if "toll_road" not in st.session_state:
     st.session_state.toll_road = {}
 if "one_way" not in st.session_state:
@@ -68,33 +70,38 @@ st.header("データ入力")
 
 st.session_state.date = st.date_input("試合日を選択してください", value=st.session_state.date)
 
-# Driver selection using a static table (Fixed "None" issue)
+# Driver selection using a static table
 driver_list = ["平野", "ケイン", "山﨑", "萩原", "仙波し", "仙波ち", "久保田", "落合", "浜島", "野波",
                "末田", "芳本", "鈴木", "山田", "佐久間", "今井", "西川"]
 
 st.write("### 運転手を選択してください")
 columns = st.columns(3)
-new_selected_drivers = set()  # Temporary storage
+new_selected_drivers = set()
 
 for i, driver in enumerate(driver_list):
     with columns[i % 3]:
         if st.checkbox(driver, key=f"select_{driver}", value=(driver in st.session_state.selected_drivers)):
             new_selected_drivers.add(driver)
 
-st.session_state.selected_drivers = new_selected_drivers  # Update session state
+st.session_state.selected_drivers = new_selected_drivers
 
-# Amount selection (Yen)
-st.session_state.amount = st.radio("金額を選択してください", [200, 400, 600, 800], index=[200, 400, 600, 800].index(st.session_state.amount))
+# Confirm Drivers Button
+if st.button("運転手を確定する"):
+    st.session_state.confirmed_drivers = True
+    st.rerun()
 
-# Checkbox State Management for Highway & One-Way
-for driver in st.session_state.selected_drivers:
-    if driver not in st.session_state.toll_road:
-        st.session_state.toll_road[driver] = False
-    if driver not in st.session_state.one_way:
-        st.session_state.one_way[driver] = False
+# Only show amount selection & checkboxes after drivers are confirmed
+if st.session_state.confirmed_drivers:
+    st.session_state.amount = st.radio("金額を選択してください", [200, 400, 600, 800], index=[200, 400, 600, 800].index(st.session_state.amount))
 
-    st.session_state.toll_road[driver] = st.checkbox(f"{driver} の高速道路利用", value=st.session_state.toll_road[driver], key=f"toll_{driver}")
-    st.session_state.one_way[driver] = st.checkbox(f"{driver} の片道利用", value=st.session_state.one_way[driver], key=f"one_way_{driver}")
+    for driver in st.session_state.selected_drivers:
+        if driver not in st.session_state.toll_road:
+            st.session_state.toll_road[driver] = False
+        if driver not in st.session_state.one_way:
+            st.session_state.one_way[driver] = False
+
+        st.session_state.toll_road[driver] = st.checkbox(f"{driver} の高速道路利用", value=st.session_state.toll_road[driver], key=f"toll_{driver}")
+        st.session_state.one_way[driver] = st.checkbox(f"{driver} の片道利用", value=st.session_state.one_way[driver], key=f"one_way_{driver}")
 
 # ==============================
 # Load Data from Google Sheets (No Caching for Instant Updates)
@@ -107,7 +114,7 @@ def load_data():
     df["年-月"] = df["日付"].dt.strftime("%Y-%m")
     return df
 
-df = load_data()  # Always loads fresh data
+df = load_data()
 
 # ==============================
 # Save Data to Google Sheets
@@ -139,7 +146,8 @@ if st.button("送信"):
 # ==============================
 if st.button("クリア"):
     st.session_state.date = datetime.today()
-    st.session_state.selected_drivers = set()  # Use an empty set instead of a list
+    st.session_state.selected_drivers = set()
+    st.session_state.confirmed_drivers = False
     st.session_state.amount = 200  
     st.session_state.toll_road = {}  
     st.session_state.one_way = {}  
