@@ -61,7 +61,7 @@ if "toll_road" not in st.session_state:
 if "one_way" not in st.session_state:
     st.session_state.one_way = {}
 if "amount" not in st.session_state:
-    st.session_state.amount = 200  
+    st.session_state.amount = 600  
 
 # ==============================
 # Data Entry Section
@@ -176,7 +176,7 @@ if st.button("クリア"):
     st.session_state.date = datetime.today()
     st.session_state.selected_drivers = set()
     st.session_state.confirmed_drivers = False
-    st.session_state.amount = 200  
+    st.session_state.amount = 600  
     st.session_state.toll_road = {}  
     st.session_state.one_way = {}  
     st.rerun()
@@ -258,7 +258,7 @@ if st.button("✅ 完了 (Done)"):
     st.session_state.logged_in = False
     st.session_state.selected_drivers = set()
     st.session_state.confirmed_drivers = False
-    st.session_state.amount = 200  
+    st.session_state.amount = 600  
     st.session_state.toll_road = {}  
     st.session_state.one_way = {}  
 
