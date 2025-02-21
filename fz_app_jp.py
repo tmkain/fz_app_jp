@@ -7,6 +7,26 @@ import os
 import json
 
 # ==============================
+# Secure Login System
+# ==============================
+
+# 🔐 Use environment variables for better security
+USERNAME = os.getenv("APP_USERNAME", "kuruma")  # Default: "admin"
+PASSWORD = os.getenv("APP_PASSWORD", "5sho")  # Default: "secret123"
+
+# Create a login form
+st.sidebar.header("🔑 ログイン")
+entered_username = st.sidebar.text_input("ユーザー名", value="", type="default")
+entered_password = st.sidebar.text_input("パスワード", value="", type="password")
+
+# Check login credentials
+if entered_username != USERNAME or entered_password != PASSWORD:
+    st.sidebar.warning("🚫 ユーザー名またはパスワードが違います")
+    st.stop()  # Stop the app if the login is incorrect
+else:
+    st.sidebar.success("✅ ログイン成功！")
+
+# ==============================
 # Google Sheets Authentication
 # ==============================
 SHEET_ID = "1upehCYwnGEcKg_zVQG7jlnNUykFmvNbuAtnxzqvSEcA"
