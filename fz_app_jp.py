@@ -50,7 +50,7 @@ if not st.session_state.logged_in:
     if st.button("ログイン"):
         if entered_username == USERNAME and entered_password == PASSWORD:
             st.session_state.logged_in = True
-            st.experimental_rerun()  # Refresh to show the main app
+            st.rerun()  # Refresh to show the main app
         else:
             st.error("🚫 ユーザー名またはパスワードが違います")
     
