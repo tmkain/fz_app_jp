@@ -109,9 +109,18 @@ if st.session_state.confirmed_drivers:
 def load_data():
     records = sheet.get_all_records()
     df = pd.DataFrame(records)
-    df["日付"] = pd.to_datetime(df["日付"], errors='coerce')
-    df.dropna(subset=["日付"], inplace=True)
-    df["年-月"] = df["日付"].dt.strftime("%Y-%m")
+
+    # 🔹 Fix: Handle empty DataFrame case
+    if df.empty:
+        return pd.DataFrame(columns=["日付", "名前", "金額", "高速道路", "片道"])  # Return empty DataFrame with correct headers
+
+    # 🔹 Fix: Check if "日付" column exists before using it
+    if "日付" in df.columns:
+        df["日付"] = pd.to_datetime(df["日付"], errors='coerce')
+        df["年-月"] = df["日付"].dt.strftime("%Y-%m")
+    else:
+        st.warning("🚨 '日付' column not found in Google Sheets. Check if column names match exactly.")
+
     return df
 
 df = load_data()
