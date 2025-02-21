@@ -239,14 +239,6 @@ if not df.empty:
     st.download_button(label="CSVをダウンロード", data=csv, file_name="fz_data.csv", mime="text/csv")
 
 # ==============================
-# CSV Download Option
-# ==============================
-st.header("📥 CSVダウンロード")
-if not df.empty:
-    csv = df.to_csv(index=False).encode("utf-8")
-    st.download_button(label="CSVをダウンロード", data=csv, file_name="fz_data.csv", mime="text/csv")
-
-# ==============================
 # Done Button (Saves Data & Logs Out)
 # ==============================
 st.markdown("---")  # Adds a horizontal line for visual separation
