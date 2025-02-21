@@ -231,11 +231,11 @@ if st.button("⏪ 取り消す"):
     undo_last_submission()
 
 # ==============================
-# CSV Download Option
+# CSV Download Option (Shift JIS Encoding for Japanese)
 # ==============================
 st.header("📥 CSVダウンロード")
 if not df.empty:
-    csv = df.to_csv(index=False).encode("utf-8")
+    csv = df.to_csv(index=False, encoding="cp932")  # 🔹 Use CP932 (Shift JIS compatible)
     st.download_button(label="CSVをダウンロード", data=csv, file_name="fz_data.csv", mime="text/csv")
 
 # ==============================
