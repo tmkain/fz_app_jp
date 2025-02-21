@@ -59,6 +59,8 @@ if "date" not in st.session_state:
     st.session_state.date = datetime.today()  # Default to today’s date
 if "selected_drivers" not in st.session_state:
     st.session_state.selected_drivers = []
+if "confirmed_drivers" not in st.session_state:
+    st.session_state.confirmed_drivers = False  # Controls when checkboxes appear
 if "toll_road" not in st.session_state:
     st.session_state.toll_road = {}  # Stores 高速道路利用 checkboxes
 if "one_way" not in st.session_state:
@@ -74,23 +76,31 @@ st.header("データ入力")
 
 # User Inputs
 st.session_state.date = st.date_input("試合日を選択してください", value=st.session_state.date)
+
 driver_list = ["平野", "ケイン", "山﨑", "萩原", "仙波し", "仙波ち", "久保田", "落合", "浜島", "野波",
                "末田", "芳本", "鈴木", "山田", "佐久間", "今井", "西川"]
 
-st.session_state.selected_drivers = st.multiselect("運転手を選択してください", driver_list, default=st.session_state.selected_drivers)
+st.session_state.selected_drivers = st.multiselect(
+    "運転手を選択してください", driver_list, default=st.session_state.selected_drivers
+)
 
-# Amount selection (restored)
-st.session_state.amount = st.radio("金額を選択してください", [200, 400, 600, 800], index=[200, 400, 600, 800].index(st.session_state.amount))
+# "Confirm Drivers" Button
+if st.button("運転手を確定する"):
+    st.session_state.confirmed_drivers = True
+    st.rerun()
 
-# Checkbox State Management
-for driver in st.session_state.selected_drivers:
-    if driver not in st.session_state.toll_road:
-        st.session_state.toll_road[driver] = False
-    if driver not in st.session_state.one_way:
-        st.session_state.one_way[driver] = False
+# Only show checkboxes after drivers are confirmed
+if st.session_state.confirmed_drivers:
+    st.session_state.amount = st.radio("金額を選択してください", [200, 400, 600, 800], index=[200, 400, 600, 800].index(st.session_state.amount))
 
-    st.session_state.toll_road[driver] = st.checkbox(f"{driver} の高速道路利用", value=st.session_state.toll_road[driver], key=f"toll_{driver}")
-    st.session_state.one_way[driver] = st.checkbox(f"{driver} の片道利用", value=st.session_state.one_way[driver], key=f"one_way_{driver}")
+    for driver in st.session_state.selected_drivers:
+        if driver not in st.session_state.toll_road:
+            st.session_state.toll_road[driver] = False
+        if driver not in st.session_state.one_way:
+            st.session_state.one_way[driver] = False
+
+        st.session_state.toll_road[driver] = st.checkbox(f"{driver} の高速道路利用", value=st.session_state.toll_road[driver], key=f"toll_{driver}")
+        st.session_state.one_way[driver] = st.checkbox(f"{driver} の片道利用", value=st.session_state.one_way[driver], key=f"one_way_{driver}")
 
 # ==============================
 # Save Data to Google Sheets
@@ -123,6 +133,7 @@ if st.button("送信"):
 if st.button("クリア"):
     st.session_state.date = datetime.today()  # Reset date to today
     st.session_state.selected_drivers = []  # Clear selected drivers
+    st.session_state.confirmed_drivers = False  # Reset confirmation
     st.session_state.amount = 200  # Reset amount selection to default
     st.session_state.toll_road = {}  # Clear checkboxes
     st.session_state.one_way = {}  # Clear checkboxes
