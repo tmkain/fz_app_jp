@@ -93,7 +93,7 @@ if st.button("運転手を確定する"):
 
 # Only show amount selection & checkboxes after drivers are confirmed
 if st.session_state.confirmed_drivers:
-    st.session_state.amount = st.radio("金額を選択してください", [200, 400, 600, 800], index=[200, 400, 600, 800].index(st.session_state.amount))
+    st.session_state.amount = st.radio("金額を選択してください", [600, 800, 1000, 1200], index=[600, 800, 1000, 1200].index(st.session_state.amount))
 
     for driver in st.session_state.selected_drivers:
         if driver not in st.session_state.toll_road:
@@ -157,7 +157,7 @@ if st.button("送信"):
         batch_id = int(time.time())  # 🔹 Generates a unique batch ID for this submission
 
         new_entries = [[st.session_state.date.strftime("%Y-%m-%d"), driver, 
-                        (st.session_state.amount + (1000 if st.session_state.toll_road[driver] else 0)) / (2 if st.session_state.one_way[driver] else 1), 
+                        (st.session_state.amount + (600 if st.session_state.toll_road[driver] else 0)) / (2 if st.session_state.one_way[driver] else 1), 
                          "あり" if st.session_state.toll_road[driver] else "なし", 
                          "あり" if st.session_state.one_way[driver] else "なし",
                          batch_id]  # 🔹 Adds the batch ID to each row
