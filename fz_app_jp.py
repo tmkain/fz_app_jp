@@ -59,10 +59,12 @@ if "selected_drivers" not in st.session_state:
     st.session_state.selected_drivers = set()
 if "confirmed_drivers" not in st.session_state:
     st.session_state.confirmed_drivers = False
-if "toll_road" not in st.session_state:
-    st.session_state.toll_road = {}
 if "one_way" not in st.session_state:
     st.session_state.one_way = {}
+if "toll_round_trip" not in st.session_state:
+    st.session_state.toll_round_trip = {}
+if "toll_one_way" not in st.session_state:
+    st.session_state.toll_one_way = {}
 if "amount" not in st.session_state:
     st.session_state.amount = 200  
 
@@ -98,25 +100,9 @@ if st.session_state.confirmed_drivers:
     st.session_state.amount = st.radio("金額を選択してください", [200, 400, 600, 800, 1000, 1200])
 
     for driver in st.session_state.selected_drivers:
-        st.session_state.toll_road[driver] = st.checkbox(f"{driver} の高速道路利用", value=st.session_state.toll_road.get(driver, False), key=f"toll_{driver}")
-        st.session_state.one_way[driver] = st.checkbox(f"{driver} の片道利用", value=st.session_state.one_way.get(driver, False), key=f"one_way_{driver}")
-
-# ==============================
-# Load Data from Google Sheets (Optimized)
-# ==============================
-@st.cache_data(ttl=60)
-def load_data():
-    records = sheet.get_all_values()
-    if not records or len(records) < 2:
-        return pd.DataFrame(columns=["日付", "名前", "金額", "高速道路", "片道", "送信グループID", "補足"])
-
-    df = pd.DataFrame(records[1:], columns=records[0])
-    if "日付" in df.columns:
-        df["日付"] = pd.to_datetime(df["日付"], errors="coerce")
-    
-    return df
-
-df = load_data()
+        st.session_state.one_way[driver] = st.checkbox(f"{driver} の一般道路片道", value=st.session_state.one_way.get(driver, False), key=f"one_way_{driver}")
+        st.session_state.toll_round_trip[driver] = st.checkbox(f"{driver} の高速道路往復", value=st.session_state.toll_round_trip.get(driver, False), key=f"toll_round_trip_{driver}")
+        st.session_state.toll_one_way[driver] = st.checkbox(f"{driver} の高速道路片道", value=st.session_state.toll_one_way.get(driver, False), key=f"toll_one_way_{driver}")
 
 # ==============================
 # Save Data to Google Sheets (Appending instead of Overwriting)
@@ -128,15 +114,36 @@ def append_data(new_entries):
 if st.button("送信"):  
     if st.session_state.selected_drivers:
         batch_id = int(time.time())
+        game_date = st.session_state.date.strftime("%m/%d")
 
-        new_entries = [[st.session_state.date.strftime("%Y-%m-%d"), driver, 
-                        st.session_state.amount / (2 if st.session_state.one_way[driver] else 1),  
-                        "あり" if st.session_state.toll_road[driver] else "なし", 
-                        "あり" if st.session_state.one_way[driver] else "なし",
-                        batch_id,
-                        "+" if st.session_state.toll_road[driver] else ""
-                       ] 
-                       for driver in st.session_state.selected_drivers]
+        new_entries = []
+        for driver in st.session_state.selected_drivers:
+            amount = st.session_state.amount
+
+            # Adjust reimbursement
+            if st.session_state.one_way[driver]:  
+                amount /= 2  # 一般道路片道 → 半額
+            if st.session_state.toll_round_trip[driver]:  
+                amount = 0  # 高速道路往復 → 完全無視
+            if st.session_state.toll_one_way[driver]:  
+                amount /= 2  # 高速道路片道 → 半額適用
+
+            # 補足欄 logic
+            supplement = ""
+            if st.session_state.toll_round_trip[driver]:  
+                supplement = f"++{game_date}"  # 高速道路往復
+            elif st.session_state.toll_one_way[driver]:  
+                supplement = f"+{game_date}"  # 高速道路片道
+
+            new_entries.append([
+                st.session_state.date.strftime("%Y-%m-%d"), 
+                driver, 
+                amount, 
+                "あり" if st.session_state.toll_round_trip[driver] or st.session_state.toll_one_way[driver] else "なし",
+                "あり" if st.session_state.one_way[driver] else "なし",
+                batch_id,
+                supplement
+            ])
 
         append_data(new_entries)
         st.success("データが保存されました！")
@@ -150,21 +157,15 @@ if df.empty:
     st.warning("データがありません。")
 else:
     df["年-月"] = df["日付"].dt.strftime("%Y-%m")
-    
+
     summary = df.groupby(["年-月", "名前"], as_index=False)["金額"].sum()
-    summary["補足"] = df.groupby(["年-月", "名前"])["補足"].apply(lambda x: "+" if "+" in x.values else "").reset_index(drop=True)
-    
+    if "補足" in df.columns:
+        summary["補足"] = df.groupby(["年-月", "名前"])["補足"].apply(lambda x: " ".join(x.dropna().unique())).reset_index(drop=True)
+    else:
+        summary["補足"] = ""
+
     summary = summary.pivot(index="年-月", columns="名前", values=["金額", "補足"]).fillna("")
     st.write(summary)
-
-# ==============================
-# CSV Download Option
-# ==============================
-st.header("📥 CSVダウンロード")
-if not df.empty:
-    csv_buffer = io.StringIO()
-    df.to_csv(csv_buffer, index=False, encoding="cp932", columns=["日付", "名前", "金額", "高速道路", "片道", "補足"])
-    st.download_button("CSVをダウンロード", data=csv_buffer.getvalue().encode("cp932"), file_name="fz_data.csv", mime="text/csv")
 
 # ==============================
 # Logout
