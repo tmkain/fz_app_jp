@@ -144,30 +144,35 @@ def save_to_db(entries):
 
 if st.session_state.confirmed_drivers:
     if st.button("送信"):  
-        if st.session_state.selected_drivers:
-            batch_id = int(time.time())
-            game_date = st.session_state.date.strftime("%Y-%m-%d")
+    if st.session_state.selected_drivers:
+        batch_id = int(time.time())
+        game_date = st.session_state.date.strftime("%Y-%m-%d")
 
-            new_entries = []
-            for driver in st.session_state.selected_drivers:
-                amount = st.session_state.amount + st.session_state.toll_cost.get(driver, 0)  # Add toll cost to amount
-                if st.session_state.one_way.get(driver, False):  
-                    amount /= 2  
-                if st.session_state.toll_round_trip.get(driver, False):  
-                    amount = 0 + st.session_state.toll_cost.get(driver, 0)  
-                elif st.session_state.toll_one_way.get(driver, False):  
-                    amount /= 2  
+        new_entries = []
+        for driver in st.session_state.selected_drivers:
+            amount = st.session_state.amount + st.session_state.toll_cost.get(driver, 0)
+            if st.session_state.one_way.get(driver, False):  
+                amount /= 2  
+            if st.session_state.toll_round_trip.get(driver, False):  
+                amount = 0 + st.session_state.toll_cost.get(driver, 0)
+            elif st.session_state.toll_one_way.get(driver, False):  
+                amount /= 2  
 
-                new_entries.append([
-                    game_date,  
-                    driver,  
-                    int(amount),  
-                    "あり" if st.session_state.toll_round_trip.get(driver, False) or st.session_state.toll_one_way.get(driver, False) else "なし",
-                    st.session_state.toll_cost.get(driver, 0),
-                    "あり" if st.session_state.one_way.get(driver, False) else "なし",
-                    batch_id
-                ])
+            new_entries.append([
+                game_date,  
+                driver,  
+                int(amount),  
+                "あり" if st.session_state.toll_round_trip.get(driver, False) or st.session_state.toll_one_way.get(driver, False) else "なし",
+                st.session_state.toll_cost.get(driver, 0),
+                "あり" if st.session_state.one_way.get(driver, False) else "なし",
+                batch_id
+            ])
 
-            save_to_db(new_entries)
-            st.success("✅ データが保存されました！")
-            st.rerun()
+        save_to_db(new_entries)
+        
+        # 🔹 Load fresh data immediately after saving
+        df = load_from_db()
+
+        st.success("✅ データが保存されました！")
+        st.rerun()  # Ensures the UI refreshes properly
+
