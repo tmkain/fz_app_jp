@@ -145,7 +145,7 @@ def save_to_db(entries):
     conn.close()
 
 if st.session_state.confirmed_drivers:
-    st.session_state.amount = st.radio("金額を選択してください", [200, 400, 600, 800, 1000, 1200])
+    st.session_state.amount = st.radio("金額を選択してください", [200, 400, 600, 800, 1000, 1200], key="amount_selection")
 
     # Show checkboxes for each driver and input fields for toll costs
     for driver in st.session_state.selected_drivers:
@@ -221,5 +221,6 @@ if st.session_state.confirmed_drivers:
                     st.write(summary.pivot(index="年-月", columns="名前", values=["金額"]).fillna(""))
 
             st.rerun()  # Ensures the UI refreshes properly
+
 
 
