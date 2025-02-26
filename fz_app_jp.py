@@ -46,8 +46,7 @@ def create_db():
             amount REAL, 
             toll TEXT, 
             one_way TEXT, 
-            batch_id INTEGER,
-            notes TEXT
+            batch_id INTEGER
         )
     """)
     conn.commit()
@@ -60,11 +59,8 @@ create_db()
 # ==============================
 def load_from_db():
     conn = sqlite3.connect(DB_FILE)
-    df = pd.read_sql_query("SELECT id, date, name, amount, toll, one_way, notes FROM data", conn)  # Excludes batch_id
+    df = pd.read_sql_query("SELECT date, name, amount, toll, one_way FROM data", conn)  # Removed batch_id
     conn.close()
-
-    # Remove 初期データ rows
-    df = df[df["name"] != "サンプル"]
 
     # Convert date format and ensure amounts are whole numbers
     df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
@@ -128,11 +124,11 @@ def save_to_db(entries):
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
 
-    formatted_entries = [(e[0], e[1], e[2], e[3], e[4], e[5], e[6]) for e in entries]
+    formatted_entries = [(e[0], e[1], e[2], e[3], e[4], e[5]) for e in entries]
 
     c.executemany("""
-        INSERT INTO data (date, name, amount, toll, one_way, batch_id, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO data (date, name, amount, toll, one_way, batch_id)
+        VALUES (?, ?, ?, ?, ?, ?)
     """, formatted_entries)
 
     conn.commit()
@@ -147,16 +143,12 @@ if st.session_state.confirmed_drivers:
             new_entries = []
             for driver in st.session_state.selected_drivers:
                 amount = st.session_state.amount
-                supplement = ""
-
                 if st.session_state.one_way.get(driver, False):  
                     amount /= 2  
                 if st.session_state.toll_round_trip.get(driver, False):  
                     amount = 0  
-                    supplement = f"++{game_date}"  
                 elif st.session_state.toll_one_way.get(driver, False):  
                     amount /= 2  
-                    supplement = f"+{game_date}"  
 
                 new_entries.append([
                     game_date,  
@@ -164,8 +156,7 @@ if st.session_state.confirmed_drivers:
                     int(amount),  # Convert to whole number
                     "あり" if st.session_state.toll_round_trip.get(driver, False) or st.session_state.toll_one_way.get(driver, False) else "なし",
                     "あり" if st.session_state.one_way.get(driver, False) else "なし",
-                    batch_id,
-                    supplement
+                    batch_id
                 ])
 
             save_to_db(new_entries)
@@ -183,15 +174,12 @@ if df.empty:
     st.warning("データがありません。")
 else:
     df["年-月"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m")
+    df["amount"] = df.apply(lambda row: f"{row['amount']}*" if row["toll"] == "あり" else str(row["amount"]), axis=1)
+    
     summary = df.groupby(["年-月", "name"], as_index=False)["amount"].sum()
 
-    if "notes" in df.columns:
-        summary["補足"] = df.groupby(["年-月", "name"])["notes"].apply(lambda x: " ".join(x.dropna().unique())).reset_index(drop=True)
-    else:
-        summary["補足"] = ""
-
-    summary.columns = ["年-月", "名前", "金額", "補足"]  # Change column headers to Japanese
-    st.write(summary.pivot(index="年-月", columns="名前", values=["金額", "補足"]).fillna(""))
+    summary.columns = ["年-月", "名前", "金額"]  # Change column headers to Japanese
+    st.write(summary.pivot(index="年-月", columns="名前", values=["金額"]).fillna(""))
 
 # ==============================
 # Logout
