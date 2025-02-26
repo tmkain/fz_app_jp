@@ -153,12 +153,16 @@ if st.button("送信"):
 # ==============================
 st.header("📊 月ごとの集計")
 
+df = load_data()  # 🔹 Ensure df is loaded before checking
+
 if df.empty:
     st.warning("データがありません。")
 else:
     df["年-月"] = df["日付"].dt.strftime("%Y-%m")
 
     summary = df.groupby(["年-月", "名前"], as_index=False)["金額"].sum()
+    
+    # Ensure 補足 exists before applying groupby
     if "補足" in df.columns:
         summary["補足"] = df.groupby(["年-月", "名前"])["補足"].apply(lambda x: " ".join(x.dropna().unique())).reset_index(drop=True)
     else:
@@ -166,6 +170,7 @@ else:
 
     summary = summary.pivot(index="年-月", columns="名前", values=["金額", "補足"]).fillna("")
     st.write(summary)
+
 
 # ==============================
 # Logout
