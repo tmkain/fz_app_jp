@@ -147,15 +147,26 @@ def save_to_db(entries):
 if st.session_state.confirmed_drivers:
     st.session_state.amount = st.radio("金額を選択してください", [200, 400, 600, 800, 1000, 1200], key="amount_selection")
 
-    # Show checkboxes for each driver and input fields for toll costs
+    # Ensure session state is initialized correctly for each driver
     for driver in st.session_state.selected_drivers:
-        st.session_state.one_way[driver] = st.checkbox(f"{driver} の一般道路片道", value=st.session_state.one_way.get(driver, False), key=f"one_way_{driver}")
-        st.session_state.toll_round_trip[driver] = st.checkbox(f"{driver} の高速道路往復", value=st.session_state.toll_round_trip.get(driver, False), key=f"toll_round_trip_{driver}")
-        st.session_state.toll_one_way[driver] = st.checkbox(f"{driver} の高速道路片道", value=st.session_state.toll_one_way.get(driver, False), key=f"toll_one_way_{driver}")
+        if driver not in st.session_state.one_way:
+            st.session_state.one_way[driver] = False
+        if driver not in st.session_state.toll_round_trip:
+            st.session_state.toll_round_trip[driver] = False
+        if driver not in st.session_state.toll_one_way:
+            st.session_state.toll_one_way[driver] = False
+        if driver not in st.session_state.toll_cost:
+            st.session_state.toll_cost[driver] = 0
+
+        # Create checkboxes for each driver
+        st.session_state.one_way[driver] = st.checkbox(f"{driver} の一般道路片道", value=st.session_state.one_way[driver], key=f"one_way_{driver}_chk")
+        st.session_state.toll_round_trip[driver] = st.checkbox(f"{driver} の高速道路往復", value=st.session_state.toll_round_trip[driver], key=f"toll_round_trip_{driver}_chk")
+        st.session_state.toll_one_way[driver] = st.checkbox(f"{driver} の高速道路片道", value=st.session_state.toll_one_way[driver], key=f"toll_one_way_{driver}_chk")
 
         # Show input field for toll cost if either toll option is selected
         if st.session_state.toll_round_trip[driver] or st.session_state.toll_one_way[driver]:
-            st.session_state.toll_cost[driver] = st.number_input(f"{driver} の高速料金（円）", min_value=0, value=st.session_state.toll_cost.get(driver, 0), key=f"toll_cost_{driver}")
+            st.session_state.toll_cost[driver] = st.number_input(f"{driver} の高速料金（円）", min_value=0, value=st.session_state.toll_cost[driver], key=f"toll_cost_{driver}_input")
+
 
     if st.button("送信"):  
         if st.session_state.selected_drivers:
