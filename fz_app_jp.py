@@ -31,27 +31,8 @@ if not st.session_state.logged_in:
     st.stop()
 
 # ==============================
-# ✅ Initialize Session State AFTER Login
-# ==============================
-if "date" not in st.session_state:
-    st.session_state.date = datetime.today()
-if "selected_drivers" not in st.session_state:
-    st.session_state.selected_drivers = set()
-if "confirmed_drivers" not in st.session_state:
-    st.session_state.confirmed_drivers = False
-if "one_way" not in st.session_state:
-    st.session_state.one_way = {}
-if "toll_round_trip" not in st.session_state:
-    st.session_state.toll_round_trip = {}
-if "toll_one_way" not in st.session_state:
-    st.session_state.toll_one_way = {}
-if "amount" not in st.session_state:
-    st.session_state.amount = 200  
-
-# ==============================
 # SQLite Database Setup
 # ==============================
-
 DB_FILE = "fz_data.db"
 
 def create_db():
@@ -77,31 +58,52 @@ def create_db():
             INSERT INTO data (date, name, amount, toll, one_way, batch_id, notes)
             VALUES ('2000-01-01', 'サンプル', 0, 'なし', 'なし', 0, '初期データ')
         """)
-    
+
     conn.commit()
     conn.close()
 
 create_db()
 
 # ==============================
-# Load Data from SQLite
+# ✅ Define load_from_db() BEFORE using it
 # ==============================
+def load_from_db():
+    conn = sqlite3.connect(DB_FILE)
+    df = pd.read_sql_query("SELECT * FROM data", conn)
+    conn.close()
 
-df = load_from_db()
-st.write("📌 Full DB Content:", df)  # Debugging: See if anything is actually stored
+    if df.empty:
+        df = pd.DataFrame({
+            "id": [0],
+            "date": ["2000-01-01"],
+            "name": ["サンプル"],
+            "amount": [0],
+            "toll": ["なし"],
+            "one_way": ["なし"],
+            "batch_id": [0],
+            "notes": ["初期データ"]
+        })
 
-if df.empty:
-    st.warning("データがありません。")
-else:
-    selected_date = st.date_input("編集する日付を選択", value=datetime.today())
-    selected_date_str = selected_date.strftime("%Y-%m-%d")
+    df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")  # Ensure correct format
+    return df
 
-    # Debugging: Show stored dates
-    st.write(f"📌 Selected Date: {selected_date_str}")
-    st.write("📌 Available Dates in DB:", df["date"].unique())  # Check what dates exist
-
-    filtered_df = df[df["date"] == selected_date_str]
-
+# ==============================
+# Initialize Session State AFTER Login
+# ==============================
+if "date" not in st.session_state:
+    st.session_state.date = datetime.today()
+if "selected_drivers" not in st.session_state:
+    st.session_state.selected_drivers = set()
+if "confirmed_drivers" not in st.session_state:
+    st.session_state.confirmed_drivers = False
+if "one_way" not in st.session_state:
+    st.session_state.one_way = {}
+if "toll_round_trip" not in st.session_state:
+    st.session_state.toll_round_trip = {}
+if "toll_one_way" not in st.session_state:
+    st.session_state.toll_one_way = {}
+if "amount" not in st.session_state:
+    st.session_state.amount = 200  
 
 # ==============================
 # Data Entry Section
@@ -132,61 +134,10 @@ if st.session_state.confirmed_drivers:
     st.session_state.amount = st.radio("金額を選択してください", [200, 400, 600, 800, 1000, 1200])
 
 # ==============================
-# Edit & Delete Entries
+# Debugging Section (Check Stored Data)
 # ==============================
-st.header("📝 データ編集")
-
 df = load_from_db()
-
-if df.empty:
-    st.warning("データがありません。")
-else:
-    selected_date = st.date_input("編集する日付を選択", value=datetime.today())
-    selected_date_str = selected_date.strftime("%Y-%m-%d")
-
-    # Debugging: Show stored dates
-    st.write(f"📌 Selected Date: {selected_date_str}")
-    st.write("📌 Available Dates in DB:", df["date"].unique())
-
-    filtered_df = df[df["date"] == selected_date_str]
-
-    if filtered_df.empty:
-        st.warning("選択した日付のデータがありません。")
-    else:
-        st.write("📋 編集可能なエントリ")
-        edited_entries = []
-
-        for index, row in filtered_df.iterrows():
-            col1, col2, col3, col4, col5 = st.columns(5)
-            new_name = col1.text_input("名前", value=row["name"], key=f"name_{row['id']}")
-            new_amount = col2.number_input("金額", value=row["amount"], step=100, key=f"amount_{row['id']}")
-            new_toll = col3.selectbox("高速道路", ["あり", "なし"], index=0 if row["toll"] == "あり" else 1, key=f"toll_{row['id']}")
-            new_notes = col4.text_input("補足", value=row["notes"] or "", key=f"notes_{row['id']}")
-
-            edited_entries.append((new_name, new_amount, new_toll, new_notes, row["id"]))
-
-            if col5.button("❌ 削除", key=f"delete_{row['id']}"):
-                conn = sqlite3.connect(DB_FILE)
-                c = conn.cursor()
-                c.execute("DELETE FROM data WHERE id = ?", (row["id"],))
-                conn.commit()
-                conn.close()
-                st.success("✅ エントリが削除されました！")
-                st.rerun()
-
-        if st.button("💾 変更を保存"):
-            conn = sqlite3.connect(DB_FILE)
-            c = conn.cursor()
-            for entry in edited_entries:
-                c.execute("""
-                    UPDATE data 
-                    SET name = ?, amount = ?, toll = ?, notes = ? 
-                    WHERE id = ?
-                """, entry)
-            conn.commit()
-            conn.close()
-            st.success("✅ データが更新されました！")
-            st.rerun()
+st.write("📌 Full DB Content:", df)  # Debugging: Check if data exists
 
 # ==============================
 # Monthly Summary Section
@@ -206,6 +157,9 @@ else:
 
     st.write(summary.pivot(index="年-月", columns="name", values=["amount", "補足"]).fillna(""))
 
+# ==============================
+# Logout
+# ==============================
 if st.button("✅ 完了"):
     st.session_state.logged_in = False
     st.success("✅ ログアウトしました。")
