@@ -61,7 +61,7 @@ if "toll_road" not in st.session_state:
 if "one_way" not in st.session_state:
     st.session_state.one_way = {}
 if "amount" not in st.session_state:
-    st.session_state.amount = 600  
+    st.session_state.amount = 200  
 
 # ==============================
 # Data Entry Section
@@ -93,7 +93,7 @@ if st.button("運転手を確定する"):
 
 # Only show amount selection & checkboxes after drivers are confirmed
 if st.session_state.confirmed_drivers:
-    st.session_state.amount = st.radio("金額を選択してください", [600, 800, 1000, 1200], index=[600, 800, 1000, 1200].index(st.session_state.amount))
+    st.session_state.amount = st.radio("金額を選択してください", [200, 400, 600, 800, 1000, 1200], index=[200, 400, 600, 800, 1000, 1200].index(st.session_state.amount))
 
     for driver in st.session_state.selected_drivers:
         if driver not in st.session_state.toll_road:
@@ -132,11 +132,11 @@ df = load_data()
 def save_data(new_entries):
     existing_data = sheet.get_all_records()
     
-    # 🔹 Ensure the DataFrame has all six columns
+    # 🔹 Ensure the DataFrame has all seven columns
     df = pd.DataFrame(existing_data)
 
-    required_columns = ["日付", "名前", "金額", "高速道路", "片道", "送信グループID"]
-    
+    required_columns = ["日付", "名前", "金額", "高速道路", "片道", "送信グループID", "補足"]  # 🔹 Added "補足" column
+
     # 🔹 If the sheet is empty or missing columns, reset it with proper headers
     if df.empty or any(col not in df.columns for col in required_columns):
         df = pd.DataFrame(columns=required_columns)  
@@ -157,11 +157,13 @@ if st.button("送信"):
         batch_id = int(time.time())  # 🔹 Generates a unique batch ID for this submission
 
         new_entries = [[st.session_state.date.strftime("%Y-%m-%d"), driver, 
-                        (st.session_state.amount + (600 if st.session_state.toll_road[driver] else 0)) / (2 if st.session_state.one_way[driver] else 1), 
-                         "あり" if st.session_state.toll_road[driver] else "なし", 
-                         "あり" if st.session_state.one_way[driver] else "なし",
-                         batch_id]  # 🔹 Adds the batch ID to each row
-                        for driver in st.session_state.selected_drivers]
+                st.session_state.amount / (2 if st.session_state.one_way[driver] else 1),  # No +600 for toll roads
+                "あり" if st.session_state.toll_road[driver] else "なし", 
+                "あり" if st.session_state.one_way[driver] else "なし",
+                batch_id,
+                "+" if st.session_state.toll_road[driver] else ""  # 🔹 Adds "+" if a toll road reimbursement exists
+               ] 
+               for driver in st.session_state.selected_drivers]
 
         save_data(new_entries)
         st.success("データが保存されました！")
@@ -176,7 +178,7 @@ if st.button("クリア"):
     st.session_state.date = datetime.today()
     st.session_state.selected_drivers = set()
     st.session_state.confirmed_drivers = False
-    st.session_state.amount = 600  
+    st.session_state.amount = 200  
     st.session_state.toll_road = {}  
     st.session_state.one_way = {}  
     st.rerun()
@@ -190,9 +192,13 @@ if df.empty:
     st.warning("データがありません。")
 else:
     summary = df.groupby(["年-月", "名前"], as_index=False)["金額"].sum()
+    summary["補足"] = df.groupby(["年-月", "名前"])["補足"].apply(lambda x: "+" if "+" in x.values else "").reset_index(drop=True)  # 🔹 Adds "+" if any driver used a toll road
     summary["年-月"] = summary["年-月"].astype(str)
-    summary = summary.pivot(index="年-月", columns="名前", values="金額").fillna(0)
+
+    summary = summary.pivot(index="年-月", columns="名前", values=["金額", "補足"]).fillna(0)
+
     st.write(summary)
+
 
 # ==============================
 # Undo Last Submission Button
@@ -237,12 +243,10 @@ import io
 
 st.header("📥 CSVダウンロード")
 if not df.empty:
-    # 🔹 Convert DataFrame to CSV with Shift JIS encoding
     csv_buffer = io.StringIO()
-    df.to_csv(csv_buffer, index=False, encoding="cp932", errors="ignore")  # CP932 = Shift JIS for Windows
-    csv_data = csv_buffer.getvalue().encode("cp932")  # 🔹 Encode properly
+    df.to_csv(csv_buffer, index=False, encoding="cp932", errors="ignore", columns=["日付", "名前", "金額", "高速道路", "片道", "補足"])  # 🔹 Includes "補足"
+    csv_data = csv_buffer.getvalue().encode("cp932")
 
-    # 🔹 Download button
     st.download_button(
         label="CSVをダウンロード",
         data=csv_data,
@@ -255,16 +259,19 @@ if not df.empty:
 # ==============================
 if st.button("✅ 完了"):
     if st.session_state.selected_drivers:
-        batch_id = int(time.time())  # 🔹 Generates a unique batch ID for this session
+        batch_id = int(time.time())  # 🔹 Generates a unique batch ID
 
         new_entries = [[st.session_state.date.strftime("%Y-%m-%d"), driver, 
-                        (st.session_state.amount + (1000 if st.session_state.toll_road[driver] else 0)) / (2 if st.session_state.one_way[driver] else 1), 
-                         "あり" if st.session_state.toll_road[driver] else "なし", 
-                         "あり" if st.session_state.one_way[driver] else "なし",
-                         batch_id]  # 🔹 Adds batch ID
-                        for driver in st.session_state.selected_drivers]
+                        st.session_state.amount / (2 if st.session_state.one_way[driver] else 1),  # No +1000 for toll roads
+                        "あり" if st.session_state.toll_road[driver] else "なし", 
+                        "あり" if st.session_state.one_way[driver] else "なし",
+                        batch_id,
+                        "+" if st.session_state.toll_road[driver] else ""  # 🔹 Adds "+" indicator
+                       ] 
+                       for driver in st.session_state.selected_drivers]
 
         save_data(new_entries)  # 🔹 Ensures correct column format
+
 
     # Reset session & log out user
     st.session_state.logged_in = False
