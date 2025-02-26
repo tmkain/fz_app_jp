@@ -133,9 +133,60 @@ if st.button("運転手を確定する"):
 
 st.write(f"📌 Debugging: confirmed_drivers = {st.session_state.confirmed_drivers}")  # Check if this is set to True
 
+def save_to_db(entries):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+
+    # Ensure date format is correct before inserting
+    formatted_entries = [(e[0], e[1], e[2], e[3], e[4], e[5], e[6]) for e in entries]
+
+    c.executemany("""
+        INSERT INTO data (date, name, amount, toll, one_way, batch_id, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, formatted_entries)
+
+    conn.commit()
+    conn.close()
+    st.write("✅ Data successfully saved to DB!")  # Debugging
+
 
 if st.session_state.confirmed_drivers:
     st.session_state.amount = st.radio("金額を選択してください", [200, 400, 600, 800, 1000, 1200])
+
+    if st.button("送信"):  
+        if st.session_state.selected_drivers:
+            batch_id = int(time.time())
+            game_date = st.session_state.date.strftime("%Y-%m-%d")
+
+            new_entries = []
+            for driver in st.session_state.selected_drivers:
+                amount = st.session_state.amount
+                supplement = ""
+
+                if st.session_state.one_way.get(driver, False):  
+                    amount /= 2  
+                if st.session_state.toll_round_trip.get(driver, False):  
+                    amount = 0  
+                    supplement = f"++{game_date}"  
+                elif st.session_state.toll_one_way.get(driver, False):  
+                    amount /= 2  
+                    supplement = f"+{game_date}"  
+
+                new_entries.append([
+                    game_date,  
+                    driver,  
+                    amount,  
+                    "あり" if st.session_state.toll_round_trip.get(driver, False) or st.session_state.toll_one_way.get(driver, False) else "なし",
+                    "あり" if st.session_state.one_way.get(driver, False) else "なし",
+                    batch_id,
+                    supplement
+                ])
+
+            st.write("📌 Saving to DB:", new_entries)  # Debugging
+
+            save_to_db(new_entries)
+            st.success("✅ データが保存されました！")
+            st.rerun()
 
 # ==============================
 # Debugging Section (Check Stored Data)
