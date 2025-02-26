@@ -1,79 +1,47 @@
 import streamlit as st
 import pandas as pd
-import sqlite3
+import gspread
+from google.oauth2.service_account import Credentials
 from datetime import datetime
 import os
+import json
 import time
 
 # ==============================
-# Secure Full-Screen Login System
+# Google Sheets Authentication
 # ==============================
+SHEET_ID = "your_google_sheet_id_here"
+SHEET_NAME = "Sheet1"
 
 @st.cache_resource
-def get_credentials():
-    return os.getenv("APP_USERNAME"), os.getenv("APP_PASSWORD")
+def get_google_sheet():
+    creds_json = os.getenv("GOOGLE_CREDENTIALS")
+    if creds_json:
+        creds_dict = json.loads(creds_json)
+        creds = Credentials.from_service_account_info(creds_dict, scopes=["https://www.googleapis.com/auth/spreadsheets"])
+        return gspread.authorize(creds).open_by_key(SHEET_ID).worksheet(SHEET_NAME)
+    else:
+        raise ValueError("GOOGLE_CREDENTIALS environment variable not found")
 
-USERNAME, PASSWORD = get_credentials()
-
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-
-if not st.session_state.logged_in:
-    st.markdown("<div style='text-align:center'><h2>🔑 ログイン</h2></div>", unsafe_allow_html=True)
-    entered_username = st.text_input("ユーザー名", value="", key="username")
-    entered_password = st.text_input("パスワード", value="", type="password", key="password")
-    if st.button("ログイン"):
-        if entered_username == USERNAME and entered_password == PASSWORD:
-            st.session_state.logged_in = True
-            st.rerun()
-        else:
-            st.error("🚫 ユーザー名またはパスワードが違います")
-    st.stop()
+sheet = get_google_sheet()
 
 # ==============================
-# SQLite Database Setup
+# Load Data from Google Sheets
 # ==============================
-DB_FILE = "fz_data.db"
+def load_from_sheets():
+    records = sheet.get_all_values()
+    if not records or len(records) < 2:
+        return pd.DataFrame(columns=["日付", "名前", "金額", "高速道路", "高速料金", "片道"])  
 
-def create_db():
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS data (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            date TEXT, 
-            name TEXT, 
-            amount REAL, 
-            toll TEXT, 
-            toll_cost REAL,
-            one_way TEXT, 
-            batch_id INTEGER
-        )
-    """)
-    conn.commit()
-    conn.close()
-
-create_db()
-
-# ==============================
-# ✅ Define load_from_db() BEFORE using it
-# ==============================
-@st.cache_data(ttl=1)  # Forces cache refresh every second
-def load_from_db():
-    conn = sqlite3.connect(DB_FILE)
-    df = pd.read_sql_query("SELECT date, name, amount, toll, toll_cost, one_way FROM data", conn)
-    conn.close()
-
-    if not df.empty:
-        df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
-        df["amount"] = df["amount"].astype(int)
-        df["toll_cost"] = df["toll_cost"].astype(int)
-
+    df = pd.DataFrame(records[1:], columns=records[0])
+    df["金額"] = pd.to_numeric(df["金額"], errors="coerce").fillna(0).astype(int)
+    df["高速料金"] = pd.to_numeric(df["高速料金"], errors="coerce").fillna(0).astype(int)
+    df["日付"] = pd.to_datetime(df["日付"], errors="coerce").dt.strftime("%Y-%m-%d")
+    
     return df
 
-
 # ==============================
-# Initialize Session State AFTER Login
+# Initialize Session State
 # ==============================
 if "date" not in st.session_state:
     st.session_state.date = datetime.today()
@@ -88,7 +56,7 @@ if "toll_round_trip" not in st.session_state:
 if "toll_one_way" not in st.session_state:
     st.session_state.toll_one_way = {}
 if "toll_cost" not in st.session_state:
-    st.session_state.toll_cost = {}  # Store toll cost per driver
+    st.session_state.toll_cost = {}
 if "amount" not in st.session_state:
     st.session_state.amount = 200  
 
@@ -118,59 +86,25 @@ if st.button("運転手を確定する"):
     st.session_state.confirmed_drivers = True
 
 if st.session_state.confirmed_drivers:
-    st.session_state.amount = st.radio("金額を選択してください", [200, 400, 600, 800, 1000, 1200])
-
-    # Show checkboxes for each driver and input fields for toll costs
-    for driver in st.session_state.selected_drivers:
-        st.session_state.one_way[driver] = st.checkbox(f"{driver} の一般道路片道", value=st.session_state.one_way.get(driver, False), key=f"one_way_{driver}")
-        st.session_state.toll_round_trip[driver] = st.checkbox(f"{driver} の高速道路往復", value=st.session_state.toll_round_trip.get(driver, False), key=f"toll_round_trip_{driver}")
-        st.session_state.toll_one_way[driver] = st.checkbox(f"{driver} の高速道路片道", value=st.session_state.toll_one_way.get(driver, False), key=f"toll_one_way_{driver}")
-
-        # Show input field for toll cost if either toll option is selected
-        if st.session_state.toll_round_trip[driver] or st.session_state.toll_one_way[driver]:
-            st.session_state.toll_cost[driver] = st.number_input(f"{driver} の高速料金（円）", min_value=0, value=st.session_state.toll_cost.get(driver, 0), key=f"toll_cost_{driver}")
-
-def save_to_db(entries):
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-
-    formatted_entries = [(e[0], e[1], e[2], e[3], e[4], e[5], e[6]) for e in entries]
-
-    c.executemany("""
-        INSERT INTO data (date, name, amount, toll, toll_cost, one_way, batch_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, formatted_entries)
-
-    conn.commit()
-    conn.close()
-
-if st.session_state.confirmed_drivers:
     st.session_state.amount = st.radio("金額を選択してください", [200, 400, 600, 800, 1000, 1200], key="amount_selection")
 
-    # Ensure session state is initialized correctly for each driver
     for driver in st.session_state.selected_drivers:
-        if driver not in st.session_state.one_way:
-            st.session_state.one_way[driver] = False
-        if driver not in st.session_state.toll_round_trip:
-            st.session_state.toll_round_trip[driver] = False
-        if driver not in st.session_state.toll_one_way:
-            st.session_state.toll_one_way[driver] = False
-        if driver not in st.session_state.toll_cost:
-            st.session_state.toll_cost[driver] = 0
+        st.session_state.one_way[driver] = st.checkbox(f"{driver} の一般道路片道", value=st.session_state.one_way.get(driver, False), key=f"one_way_{driver}_chk")
+        st.session_state.toll_round_trip[driver] = st.checkbox(f"{driver} の高速道路往復", value=st.session_state.toll_round_trip.get(driver, False), key=f"toll_round_trip_{driver}_chk")
+        st.session_state.toll_one_way[driver] = st.checkbox(f"{driver} の高速道路片道", value=st.session_state.toll_one_way.get(driver, False), key=f"toll_one_way_{driver}_chk")
 
-        # Create checkboxes for each driver
-        st.session_state.one_way[driver] = st.checkbox(f"{driver} の一般道路片道", value=st.session_state.one_way[driver], key=f"one_way_{driver}_chk")
-        st.session_state.toll_round_trip[driver] = st.checkbox(f"{driver} の高速道路往復", value=st.session_state.toll_round_trip[driver], key=f"toll_round_trip_{driver}_chk")
-        st.session_state.toll_one_way[driver] = st.checkbox(f"{driver} の高速道路片道", value=st.session_state.toll_one_way[driver], key=f"toll_one_way_{driver}_chk")
-
-        # Show input field for toll cost if either toll option is selected
         if st.session_state.toll_round_trip[driver] or st.session_state.toll_one_way[driver]:
-            st.session_state.toll_cost[driver] = st.number_input(f"{driver} の高速料金（円）", min_value=0, value=st.session_state.toll_cost[driver], key=f"toll_cost_{driver}_input")
+            st.session_state.toll_cost[driver] = st.number_input(f"{driver} の高速料金（円）", min_value=0, value=st.session_state.toll_cost.get(driver, 0), key=f"toll_cost_{driver}_input")
 
+# ==============================
+# Save Data to Google Sheets
+# ==============================
+def save_to_sheets(entries):
+    sheet.append_rows(entries, value_input_option="USER_ENTERED")
 
+if st.session_state.confirmed_drivers:
     if st.button("送信"):  
         if st.session_state.selected_drivers:
-            batch_id = int(time.time())
             game_date = st.session_state.date.strftime("%Y-%m-%d")
 
             new_entries = []
@@ -189,49 +123,32 @@ if st.session_state.confirmed_drivers:
                     int(amount),  
                     "あり" if st.session_state.toll_round_trip.get(driver, False) or st.session_state.toll_one_way.get(driver, False) else "なし",
                     st.session_state.toll_cost.get(driver, 0),
-                    "あり" if st.session_state.one_way.get(driver, False) else "なし",
-                    batch_id
+                    "あり" if st.session_state.one_way.get(driver, False) else "なし"
                 ])
 
-            save_to_db(new_entries)
-            
-            # 🔹 Load fresh data immediately after saving
-            df = load_from_db()
-
+            save_to_sheets(new_entries)
             st.success("✅ データが保存されました！")
+            st.rerun()
 
-            # 🔹 Show 合計 section immediately after saving
-            st.header("📊 月ごとの集計")
-            if df.empty:
-                st.warning("データがありません。")
-            else:
-                df["年-月"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m")
+# ==============================
+# Monthly Summary Section
+# ==============================
+st.header("📊 月ごとの集計")
 
-                # Ensure numerical columns are integers (if they exist)
-                if "amount" in df.columns and "toll_cost" in df.columns:
-                    df["amount"] = df["amount"].astype(int)
-                    df["toll_cost"] = df["toll_cost"].astype(int)
+df = load_from_sheets()
 
-                    # Add asterisk if toll was used
-                    df["amount"] = df.apply(lambda row: f"{row['amount']}*" if row["toll"] == "あり" else str(row["amount"]), axis=1)
+if df.empty:
+    st.warning("データがありません。")
+else:
+    df["年-月"] = pd.to_datetime(df["日付"]).dt.strftime("%Y-%m")
 
-                    # Summarize data
-                    summary = df.groupby(["年-月", "name"], as_index=False).agg({"amount": "sum", "toll_cost": "sum"})
+    df["金額"] = df.apply(lambda row: f"{row['金額']}*" if row["高速道路"] == "あり" else str(row["金額"]), axis=1)
 
-                    # Ensure numerical values are properly formatted
-                    summary["amount"] = summary["amount"].astype(int)
-                    summary["toll_cost"] = summary["toll_cost"].astype(int)
+    summary = df.groupby(["年-月", "名前"], as_index=False).agg({"金額": "sum", "高速料金": "sum"})
 
-                    # Compute final total
-                    summary["合計金額"] = summary["amount"] + summary["toll_cost"]
+    summary["合計金額"] = summary["金額"] + summary["高速料金"]
+    summary = summary.drop(columns=["金額", "高速料金"])
+    summary.columns = ["年-月", "名前", "金額"]
 
-                    # Drop unnecessary columns and rename
-                    summary = summary.drop(columns=["amount", "toll_cost"])
-                    summary.columns = ["年-月", "名前", "金額"]
-
-                    st.write(summary.pivot(index="年-月", columns="名前", values=["金額"]).fillna(""))
-
-            st.rerun()  # Ensures the UI refreshes properly
-
-
+    st.write(summary.pivot(index="年-月", columns="名前", values=["金額"]).fillna(""))
 
