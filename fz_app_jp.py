@@ -31,6 +31,24 @@ if not st.session_state.logged_in:
     st.stop()
 
 # ==============================
+# ✅ Initialize Session State AFTER Login
+# ==============================
+if "date" not in st.session_state:
+    st.session_state.date = datetime.today()
+if "selected_drivers" not in st.session_state:
+    st.session_state.selected_drivers = set()
+if "confirmed_drivers" not in st.session_state:
+    st.session_state.confirmed_drivers = False
+if "one_way" not in st.session_state:
+    st.session_state.one_way = {}
+if "toll_round_trip" not in st.session_state:
+    st.session_state.toll_round_trip = {}
+if "toll_one_way" not in st.session_state:
+    st.session_state.toll_one_way = {}
+if "amount" not in st.session_state:
+    st.session_state.amount = 200  
+
+# ==============================
 # SQLite Database Setup
 # ==============================
 
