@@ -34,11 +34,19 @@ def load_from_sheets():
         return pd.DataFrame(columns=["日付", "名前", "金額", "高速道路", "高速料金", "片道"])  
 
     df = pd.DataFrame(records[1:], columns=records[0])
+
+    # Ensure numerical columns exist before converting
     df["金額"] = pd.to_numeric(df["金額"], errors="coerce").fillna(0).astype(int)
-    df["高速料金"] = pd.to_numeric(df["高速料金"], errors="coerce").fillna(0).astype(int)
+
+    if "高速料金" in df.columns:
+        df["高速料金"] = pd.to_numeric(df["高速料金"], errors="coerce").fillna(0).astype(int)
+    else:
+        df["高速料金"] = 0  # Default to 0 if the column doesn't exist
+
     df["日付"] = pd.to_datetime(df["日付"], errors="coerce").dt.strftime("%Y-%m-%d")
     
     return df
+
 
 # ==============================
 # Initialize Session State
