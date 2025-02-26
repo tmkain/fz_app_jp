@@ -11,8 +11,11 @@ import time
 # Secure Full-Screen Login System
 # ==============================
 
-USERNAME = os.getenv("APP_USERNAME")  
-PASSWORD = os.getenv("APP_PASSWORD")  
+@st.cache_resource
+def get_credentials():
+    return os.getenv("APP_USERNAME"), os.getenv("APP_PASSWORD")
+
+USERNAME, PASSWORD = get_credentials()
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -71,7 +74,7 @@ st.header("データ入力")
 
 st.session_state.date = st.date_input("試合日を選択してください", value=st.session_state.date)
 
-# Driver selection using a static table
+# Driver selection
 driver_list = ["平野", "ケイン", "山﨑", "萩原", "仙波し", "仙波ち", "久保", "落合", "浜島", "野波",
                "末田", "芳本", "鈴木", "山田", "佐久間", "今井", "西川"]
 
@@ -89,197 +92,85 @@ st.session_state.selected_drivers = new_selected_drivers
 # Confirm Drivers Button
 if st.button("運転手を確定する"):
     st.session_state.confirmed_drivers = True
-    st.rerun()
 
 # Only show amount selection & checkboxes after drivers are confirmed
 if st.session_state.confirmed_drivers:
-    st.session_state.amount = st.radio("金額を選択してください", [200, 400, 600, 800, 1000, 1200], index=[200, 400, 600, 800, 1000, 1200].index(st.session_state.amount))
+    st.session_state.amount = st.radio("金額を選択してください", [200, 400, 600, 800, 1000, 1200])
 
     for driver in st.session_state.selected_drivers:
-        if driver not in st.session_state.toll_road:
-            st.session_state.toll_road[driver] = False
-        if driver not in st.session_state.one_way:
-            st.session_state.one_way[driver] = False
-
-        st.session_state.toll_road[driver] = st.checkbox(f"{driver} の高速道路利用", value=st.session_state.toll_road[driver], key=f"toll_{driver}")
-        st.session_state.one_way[driver] = st.checkbox(f"{driver} の片道利用", value=st.session_state.one_way[driver], key=f"one_way_{driver}")
+        st.session_state.toll_road[driver] = st.checkbox(f"{driver} の高速道路利用", value=st.session_state.toll_road.get(driver, False), key=f"toll_{driver}")
+        st.session_state.one_way[driver] = st.checkbox(f"{driver} の片道利用", value=st.session_state.one_way.get(driver, False), key=f"one_way_{driver}")
 
 # ==============================
-# Load Data from Google Sheets (No Caching for Instant Updates)
+# Load Data from Google Sheets (Optimized)
 # ==============================
+@st.cache_data(ttl=60)
 def load_data():
-    records = sheet.get_all_records()
-    df = pd.DataFrame(records)
+    records = sheet.get_all_values()
+    if not records or len(records) < 2:
+        return pd.DataFrame(columns=["日付", "名前", "金額", "高速道路", "片道", "送信グループID", "補足"])
 
-    # 🔹 Fix: Handle empty DataFrame case
-    if df.empty:
-        return pd.DataFrame(columns=["日付", "名前", "金額", "高速道路", "片道"])  # Return empty DataFrame with correct headers
-
-    # 🔹 Fix: Check if "日付" column exists before using it
+    df = pd.DataFrame(records[1:], columns=records[0])
     if "日付" in df.columns:
-        df["日付"] = pd.to_datetime(df["日付"], errors='coerce')
-        df["年-月"] = df["日付"].dt.strftime("%Y-%m")
-    else:
-        st.warning("🚨 '日付' column not found in Google Sheets. Check if column names match exactly.")
-
+        df["日付"] = pd.to_datetime(df["日付"], errors="coerce")
+    
     return df
 
 df = load_data()
 
 # ==============================
-# Save Data to Google Sheets
+# Save Data to Google Sheets (Appending instead of Overwriting)
 # ==============================
-def save_data(new_entries):
-    existing_data = sheet.get_all_records()
-    
-    # 🔹 Ensure the DataFrame has all seven columns
-    df = pd.DataFrame(existing_data)
-
-    required_columns = ["日付", "名前", "金額", "高速道路", "片道", "送信グループID", "補足"]  # 🔹 Added "補足" column
-
-    # 🔹 If the sheet is empty or missing columns, reset it with proper headers
-    if df.empty or any(col not in df.columns for col in required_columns):
-        df = pd.DataFrame(columns=required_columns)  
-
-    # 🔹 Force all new data to match this format
-    new_df = pd.DataFrame(new_entries, columns=required_columns)
-
-    # 🔹 Merge new data with existing data
-    updated_df = pd.concat([df, new_df], ignore_index=True)
-
-    # 🔹 Overwrite the Google Sheet with the updated data
-    sheet.clear()
-    sheet.update([updated_df.columns.values.tolist()] + updated_df.values.tolist())
+def append_data(new_entries):
+    sheet.append_rows(new_entries, value_input_option="USER_ENTERED")
 
 # Submit Data
 if st.button("送信"):  
     if st.session_state.selected_drivers:
-        batch_id = int(time.time())  # 🔹 Generates a unique batch ID for this submission
+        batch_id = int(time.time())
 
         new_entries = [[st.session_state.date.strftime("%Y-%m-%d"), driver, 
-                st.session_state.amount / (2 if st.session_state.one_way[driver] else 1),  # No +600 for toll roads
-                "あり" if st.session_state.toll_road[driver] else "なし", 
-                "あり" if st.session_state.one_way[driver] else "なし",
-                batch_id,
-                "+" if st.session_state.toll_road[driver] else ""  # 🔹 Adds "+" if a toll road reimbursement exists
-               ] 
-               for driver in st.session_state.selected_drivers]
+                        st.session_state.amount / (2 if st.session_state.one_way[driver] else 1),  
+                        "あり" if st.session_state.toll_road[driver] else "なし", 
+                        "あり" if st.session_state.one_way[driver] else "なし",
+                        batch_id,
+                        "+" if st.session_state.toll_road[driver] else ""
+                       ] 
+                       for driver in st.session_state.selected_drivers]
 
-        save_data(new_entries)
+        append_data(new_entries)
         st.success("データが保存されました！")
-        st.rerun()
-    else:
-        st.warning("運転手を選択してください。")
 
 # ==============================
-# Clear Button Functionality (Resets Everything)
-# ==============================
-if st.button("クリア"):
-    st.session_state.date = datetime.today()
-    st.session_state.selected_drivers = set()
-    st.session_state.confirmed_drivers = False
-    st.session_state.amount = 200  
-    st.session_state.toll_road = {}  
-    st.session_state.one_way = {}  
-    st.rerun()
-
-# ==============================
-# Monthly Summary Section (Updates Instantly)
+# Monthly Summary Section (Cached for Speed)
 # ==============================
 st.header("📊 月ごとの集計")
 
 if df.empty:
     st.warning("データがありません。")
 else:
+    df["年-月"] = df["日付"].dt.strftime("%Y-%m")
+    
     summary = df.groupby(["年-月", "名前"], as_index=False)["金額"].sum()
-    summary["補足"] = df.groupby(["年-月", "名前"])["補足"].apply(lambda x: "+" if "+" in x.values else "").reset_index(drop=True)  # 🔹 Adds "+" if any driver used a toll road
-    summary["年-月"] = summary["年-月"].astype(str)
-
-    summary = summary.pivot(index="年-月", columns="名前", values=["金額", "補足"]).fillna(0)
-
+    summary["補足"] = df.groupby(["年-月", "名前"])["補足"].apply(lambda x: "+" if "+" in x.values else "").reset_index(drop=True)
+    
+    summary = summary.pivot(index="年-月", columns="名前", values=["金額", "補足"]).fillna("")
     st.write(summary)
 
-
 # ==============================
-# Undo Last Submission Button
+# CSV Download Option
 # ==============================
-def undo_last_submission():
-    records = sheet.get_all_records()
-    df = pd.DataFrame(records)
-
-    if df.empty:
-        st.warning("🚨 取り消すデータがありません。")
-        return
-
-    # Find the last batch by using the most recent "送信グループID"
-    if "送信グループID" not in df.columns:
-        st.error("🚨 '送信グループID' が見つかりません。シートのフォーマットを確認してください。")
-        return
-
-    last_batch_id = df["送信グループID"].max()  # Get the highest (most recent) batch ID
-    last_batch = df[df["送信グループID"] == last_batch_id]  # Get all rows in this batch
-
-    if last_batch.empty:
-        st.warning("🚨 取り消すデータがありません。")
-        return
-
-    # Remove only the rows from the last batch
-    df = df[df["送信グループID"] != last_batch_id]
-
-    # Update Google Sheet (overwrite with filtered data)
-    sheet.clear()
-    sheet.update([df.columns.values.tolist()] + df.values.tolist())
-
-    st.success(f"✅ 送信が取り消されました: {last_batch['名前'].tolist()} ({last_batch['日付'].iloc[0]})")
-    st.rerun()
-
-if st.button("⏪ 取り消す"):
-    undo_last_submission()
-
-# ==============================
-# CSV Download Option (JIS Encoding for Japanese)
-# ==============================
-import io
-
 st.header("📥 CSVダウンロード")
 if not df.empty:
     csv_buffer = io.StringIO()
-    df.to_csv(csv_buffer, index=False, encoding="cp932", errors="ignore", columns=["日付", "名前", "金額", "高速道路", "片道", "補足"])  # 🔹 Includes "補足"
-    csv_data = csv_buffer.getvalue().encode("cp932")
-
-    st.download_button(
-        label="CSVをダウンロード",
-        data=csv_data,
-        file_name="fz_data.csv",
-        mime="text/csv"
-    )
+    df.to_csv(csv_buffer, index=False, encoding="cp932", columns=["日付", "名前", "金額", "高速道路", "片道", "補足"])
+    st.download_button("CSVをダウンロード", data=csv_buffer.getvalue().encode("cp932"), file_name="fz_data.csv", mime="text/csv")
 
 # ==============================
-# Done Button (Saves Data & Logs Out)
+# Logout
 # ==============================
 if st.button("✅ 完了"):
-    if st.session_state.selected_drivers:
-        batch_id = int(time.time())  # 🔹 Generates a unique batch ID
-
-        new_entries = [[st.session_state.date.strftime("%Y-%m-%d"), driver, 
-                        st.session_state.amount / (2 if st.session_state.one_way[driver] else 1),  # No +1000 for toll roads
-                        "あり" if st.session_state.toll_road[driver] else "なし", 
-                        "あり" if st.session_state.one_way[driver] else "なし",
-                        batch_id,
-                        "+" if st.session_state.toll_road[driver] else ""  # 🔹 Adds "+" indicator
-                       ] 
-                       for driver in st.session_state.selected_drivers]
-
-        save_data(new_entries)  # 🔹 Ensures correct column format
-
-
-    # Reset session & log out user
     st.session_state.logged_in = False
     st.session_state.selected_drivers = set()
-    st.session_state.confirmed_drivers = False
-    st.session_state.amount = 600  
-    st.session_state.toll_road = {}  
-    st.session_state.one_way = {}  
-
-    st.success("✅ データが保存されました。ログアウトしました。")
-    st.rerun()  # Redirect to login screen
+    st.success("✅ ログアウトしました。")
+    st.rerun()
