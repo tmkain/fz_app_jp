@@ -104,9 +104,8 @@ if df.empty:
 else:
     df["date"] = pd.to_datetime(df["date"])  # Convert to date format for filtering
     selected_date = st.date_input("編集する日付を選択", value=datetime.today())
-
-    # Filter entries by selected date
-    filtered_df = df[df["date"] == pd.to_datetime(selected_date)]
+    selected_date_str = selected_date.strftime("%Y-%m-%d")  # Convert date to string format
+    filtered_df = df[df["date"] == selected_date_str]  # Compare as string
 
     if filtered_df.empty:
         st.warning("選択した日付のデータがありません。")
