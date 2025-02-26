@@ -145,6 +145,18 @@ def save_to_db(entries):
     conn.close()
 
 if st.session_state.confirmed_drivers:
+    st.session_state.amount = st.radio("金額を選択してください", [200, 400, 600, 800, 1000, 1200])
+
+    # Show checkboxes for each driver and input fields for toll costs
+    for driver in st.session_state.selected_drivers:
+        st.session_state.one_way[driver] = st.checkbox(f"{driver} の一般道路片道", value=st.session_state.one_way.get(driver, False), key=f"one_way_{driver}")
+        st.session_state.toll_round_trip[driver] = st.checkbox(f"{driver} の高速道路往復", value=st.session_state.toll_round_trip.get(driver, False), key=f"toll_round_trip_{driver}")
+        st.session_state.toll_one_way[driver] = st.checkbox(f"{driver} の高速道路片道", value=st.session_state.toll_one_way.get(driver, False), key=f"toll_one_way_{driver}")
+
+        # Show input field for toll cost if either toll option is selected
+        if st.session_state.toll_round_trip[driver] or st.session_state.toll_one_way[driver]:
+            st.session_state.toll_cost[driver] = st.number_input(f"{driver} の高速料金（円）", min_value=0, value=st.session_state.toll_cost.get(driver, 0), key=f"toll_cost_{driver}")
+
     if st.button("送信"):  
         if st.session_state.selected_drivers:
             batch_id = int(time.time())
@@ -171,7 +183,7 @@ if st.session_state.confirmed_drivers:
                 ])
 
             save_to_db(new_entries)
-
+            
             # 🔹 Load fresh data immediately after saving
             df = load_from_db()
 
@@ -183,14 +195,31 @@ if st.session_state.confirmed_drivers:
                 st.warning("データがありません。")
             else:
                 df["年-月"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m")
-                df["amount"] = df.apply(lambda row: f"{row['amount']}*" if row["toll"] == "あり" else str(row["amount"]), axis=1)
-                
-                summary["amount"] = summary["amount"].astype(int)  # Convert to integers
-                summary["toll_cost"] = summary["toll_cost"].astype(int)  # Convert to integers
-                summary["合計金額"] = summary["amount"] + summary["toll_cost"]
 
-                summary.columns = ["年-月", "名前", "金額"]
-                st.write(summary.pivot(index="年-月", columns="名前", values=["金額"]).fillna(""))
+                # Ensure numerical columns are integers (if they exist)
+                if "amount" in df.columns and "toll_cost" in df.columns:
+                    df["amount"] = df["amount"].astype(int)
+                    df["toll_cost"] = df["toll_cost"].astype(int)
+
+                    # Add asterisk if toll was used
+                    df["amount"] = df.apply(lambda row: f"{row['amount']}*" if row["toll"] == "あり" else str(row["amount"]), axis=1)
+
+                    # Summarize data
+                    summary = df.groupby(["年-月", "name"], as_index=False).agg({"amount": "sum", "toll_cost": "sum"})
+
+                    # Ensure numerical values are properly formatted
+                    summary["amount"] = summary["amount"].astype(int)
+                    summary["toll_cost"] = summary["toll_cost"].astype(int)
+
+                    # Compute final total
+                    summary["合計金額"] = summary["amount"] + summary["toll_cost"]
+
+                    # Drop unnecessary columns and rename
+                    summary = summary.drop(columns=["amount", "toll_cost"])
+                    summary.columns = ["年-月", "名前", "金額"]
+
+                    st.write(summary.pivot(index="年-月", columns="名前", values=["金額"]).fillna(""))
 
             st.rerun()  # Ensures the UI refreshes properly
+
 
