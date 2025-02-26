@@ -129,6 +129,10 @@ st.session_state.selected_drivers = new_selected_drivers
 
 if st.button("運転手を確定する"):
     st.session_state.confirmed_drivers = True
+    st.write("✅ 運転手が確定されました!")  # Debugging: Confirm the button click
+
+st.write(f"📌 Debugging: confirmed_drivers = {st.session_state.confirmed_drivers}")  # Check if this is set to True
+
 
 if st.session_state.confirmed_drivers:
     st.session_state.amount = st.radio("金額を選択してください", [200, 400, 600, 800, 1000, 1200])
