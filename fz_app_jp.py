@@ -10,7 +10,7 @@ import time
 # ==============================
 # Google Sheets Authentication
 # ==============================
-SHEET_ID = "your_google_sheet_id_here"
+SHEET_ID = "1upehCYwnGEcKg_zVQG7jlnNUykFmvNbuAtnxzqvSEcA"
 SHEET_NAME = "Sheet1"
 
 @st.cache_resource
