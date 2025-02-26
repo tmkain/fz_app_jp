@@ -37,8 +37,10 @@ if not st.session_state.logged_in:
 DB_FILE = "fz_data.db"
 
 def create_db():
-    conn = sqlite3.connect(DB_FILE)
+    conn = sqlite3.connect(DB_FILE)  # Connects to the existing DB or creates a new one if missing
     c = conn.cursor()
+
+    # Create table if it does not exist
     c.execute("""
         CREATE TABLE IF NOT EXISTS data (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -51,8 +53,18 @@ def create_db():
             notes TEXT
         )
     """)
+
+    # Check if table is empty before inserting default row
+    c.execute("SELECT COUNT(*) FROM data")
+    if c.fetchone()[0] == 0:
+        c.execute("""
+            INSERT INTO data (date, name, amount, toll, one_way, batch_id, notes)
+            VALUES ('2000-01-01', 'サンプル', 0, 'なし', 'なし', 0, '初期データ')
+        """)
+    
     conn.commit()
     conn.close()
+
 
 create_db()
 
@@ -64,7 +76,21 @@ def load_from_db():
     conn = sqlite3.connect(DB_FILE)
     df = pd.read_sql_query("SELECT * FROM data", conn)
     conn.close()
+    
+    if df.empty:
+        df = pd.DataFrame({
+            "id": [0],
+            "date": ["2000-01-01"],
+            "name": ["サンプル"],
+            "amount": [0],
+            "toll": ["なし"],
+            "one_way": ["なし"],
+            "batch_id": [0],
+            "notes": ["初期データ"]
+        })
+    
     return df
+
 
 # ==============================
 # Edit & Delete Entries
@@ -143,8 +169,13 @@ else:
     else:
         summary["補足"] = ""
 
-    summary = summary.pivot(index="年-月", columns="name", values=["amount", "補足"]).fillna("")
+    # Ensure at least one row is always displayed
+    if summary.empty:
+        summary = pd.DataFrame({"年-月": ["2000-01"], "name": ["サンプル"], "amount": [0], "補足": ["なし"]})
+
+    summary = summary.pivot(index="年-月", columns="name", values=["amount", "補足"]).fillna(0)
     st.write(summary)
+
 
 # ==============================
 # Logout
