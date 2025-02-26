@@ -143,20 +143,34 @@ if st.session_state.confirmed_drivers:
 # ==============================
 st.header("📊 月ごとの集計")
 
-df = load_from_sheets()
+df = load_from_sheets()  # Reload data every time
 
 if df.empty:
     st.warning("データがありません。")
 else:
     df["年-月"] = pd.to_datetime(df["日付"]).dt.strftime("%Y-%m")
 
+    # Ensure numerical columns exist and are properly formatted
+    df["金額"] = pd.to_numeric(df["金額"], errors="coerce").fillna(0).astype(int)
+    df["高速料金"] = pd.to_numeric(df["高速料金"], errors="coerce").fillna(0).astype(int)
+
+    # Add asterisk if toll was used
     df["金額"] = df.apply(lambda row: f"{row['金額']}*" if row["高速道路"] == "あり" else str(row["金額"]), axis=1)
 
+    # Summarize data
     summary = df.groupby(["年-月", "名前"], as_index=False).agg({"金額": "sum", "高速料金": "sum"})
 
+    # Ensure both 金額 and 高速料金 are integers before adding
+    summary["金額"] = summary["金額"].astype(int)
+    summary["高速料金"] = summary["高速料金"].astype(int)
+
+    # Compute final total
     summary["合計金額"] = summary["金額"] + summary["高速料金"]
-    summary = summary.drop(columns=["金額", "高速料金"])
+
+    # Drop unnecessary columns and rename
+    summary = summary.drop(columns=["高速料金"])
     summary.columns = ["年-月", "名前", "金額"]
 
     st.write(summary.pivot(index="年-月", columns="名前", values=["金額"]).fillna(""))
+
 
