@@ -144,7 +144,7 @@ def save_to_db(entries):
 
 if st.session_state.confirmed_drivers:
     if st.button("送信"):  
-    if st.session_state.selected_drivers:
+        if st.session_state.selected_drivers:
         batch_id = int(time.time())
         game_date = st.session_state.date.strftime("%Y-%m-%d")
 
