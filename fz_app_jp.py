@@ -185,9 +185,9 @@ if st.session_state.confirmed_drivers:
                 df["年-月"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m")
                 df["amount"] = df.apply(lambda row: f"{row['amount']}*" if row["toll"] == "あり" else str(row["amount"]), axis=1)
                 
-                summary = df.groupby(["年-月", "name"], as_index=False).agg({"amount": "sum", "toll_cost": "sum"})
+                summary["amount"] = summary["amount"].astype(int)  # Convert to integers
+                summary["toll_cost"] = summary["toll_cost"].astype(int)  # Convert to integers
                 summary["合計金額"] = summary["amount"] + summary["toll_cost"]
-                summary = summary.drop(columns=["amount", "toll_cost"])
 
                 summary.columns = ["年-月", "名前", "金額"]
                 st.write(summary.pivot(index="年-月", columns="名前", values=["金額"]).fillna(""))
