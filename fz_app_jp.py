@@ -50,15 +50,6 @@ def create_db():
             notes TEXT
         )
     """)
-
-    # Insert a default row if the table is empty
-    c.execute("SELECT COUNT(*) FROM data")
-    if c.fetchone()[0] == 0:
-        c.execute("""
-            INSERT INTO data (date, name, amount, toll, one_way, batch_id, notes)
-            VALUES ('2000-01-01', 'サンプル', 0, 'なし', 'なし', 0, '初期データ')
-        """)
-
     conn.commit()
     conn.close()
 
@@ -69,22 +60,16 @@ create_db()
 # ==============================
 def load_from_db():
     conn = sqlite3.connect(DB_FILE)
-    df = pd.read_sql_query("SELECT * FROM data", conn)
+    df = pd.read_sql_query("SELECT id, date, name, amount, toll, one_way, notes FROM data", conn)  # Excludes batch_id
     conn.close()
 
-    if df.empty:
-        df = pd.DataFrame({
-            "id": [0],
-            "date": ["2000-01-01"],
-            "name": ["サンプル"],
-            "amount": [0],
-            "toll": ["なし"],
-            "one_way": ["なし"],
-            "batch_id": [0],
-            "notes": ["初期データ"]
-        })
+    # Remove 初期データ rows
+    df = df[df["name"] != "サンプル"]
 
-    df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")  # Ensure correct format
+    # Convert date format and ensure amounts are whole numbers
+    df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
+    df["amount"] = df["amount"].astype(int)  # No decimal points
+
     return df
 
 # ==============================
@@ -129,26 +114,6 @@ st.session_state.selected_drivers = new_selected_drivers
 
 if st.button("運転手を確定する"):
     st.session_state.confirmed_drivers = True
-    st.write("✅ 運転手が確定されました!")  # Debugging: Confirm the button click
-
-st.write(f"📌 Debugging: confirmed_drivers = {st.session_state.confirmed_drivers}")  # Check if this is set to True
-
-def save_to_db(entries):
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-
-    # Ensure date format is correct before inserting
-    formatted_entries = [(e[0], e[1], e[2], e[3], e[4], e[5], e[6]) for e in entries]
-
-    c.executemany("""
-        INSERT INTO data (date, name, amount, toll, one_way, batch_id, notes)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, formatted_entries)
-
-    conn.commit()
-    conn.close()
-    st.write("✅ Data successfully saved to DB!")  # Debugging
-
 
 if st.session_state.confirmed_drivers:
     st.session_state.amount = st.radio("金額を選択してください", [200, 400, 600, 800, 1000, 1200])
@@ -159,6 +124,21 @@ if st.session_state.confirmed_drivers:
         st.session_state.toll_round_trip[driver] = st.checkbox(f"{driver} の高速道路往復", value=st.session_state.toll_round_trip.get(driver, False), key=f"toll_round_trip_{driver}")
         st.session_state.toll_one_way[driver] = st.checkbox(f"{driver} の高速道路片道", value=st.session_state.toll_one_way.get(driver, False), key=f"toll_one_way_{driver}")
 
+def save_to_db(entries):
+    conn = sqlite3.connect(DB_FILE)
+    c = conn.cursor()
+
+    formatted_entries = [(e[0], e[1], e[2], e[3], e[4], e[5], e[6]) for e in entries]
+
+    c.executemany("""
+        INSERT INTO data (date, name, amount, toll, one_way, batch_id, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, formatted_entries)
+
+    conn.commit()
+    conn.close()
+
+if st.session_state.confirmed_drivers:
     if st.button("送信"):  
         if st.session_state.selected_drivers:
             batch_id = int(time.time())
@@ -181,29 +161,23 @@ if st.session_state.confirmed_drivers:
                 new_entries.append([
                     game_date,  
                     driver,  
-                    amount,  
+                    int(amount),  # Convert to whole number
                     "あり" if st.session_state.toll_round_trip.get(driver, False) or st.session_state.toll_one_way.get(driver, False) else "なし",
                     "あり" if st.session_state.one_way.get(driver, False) else "なし",
                     batch_id,
                     supplement
                 ])
 
-            st.write("📌 Saving to DB:", new_entries)  # Debugging
-
             save_to_db(new_entries)
             st.success("✅ データが保存されました！")
             st.rerun()
 
 # ==============================
-# Debugging Section (Check Stored Data)
-# ==============================
-df = load_from_db()
-st.write("📌 Full DB Content:", df)  # Debugging: Check if data exists
-
-# ==============================
 # Monthly Summary Section
 # ==============================
 st.header("📊 月ごとの集計")
+
+df = load_from_db()
 
 if df.empty:
     st.warning("データがありません。")
@@ -216,7 +190,8 @@ else:
     else:
         summary["補足"] = ""
 
-    st.write(summary.pivot(index="年-月", columns="name", values=["amount", "補足"]).fillna(""))
+    summary.columns = ["年-月", "名前", "金額", "補足"]  # Change column headers to Japanese
+    st.write(summary.pivot(index="年-月", columns="名前", values=["金額", "補足"]).fillna(""))
 
 # ==============================
 # Logout
