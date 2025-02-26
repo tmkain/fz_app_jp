@@ -58,17 +58,19 @@ create_db()
 # ==============================
 # ✅ Define load_from_db() BEFORE using it
 # ==============================
+@st.cache_data(ttl=1)  # Forces cache refresh every second
 def load_from_db():
     conn = sqlite3.connect(DB_FILE)
-    df = pd.read_sql_query("SELECT date, name, amount, toll, toll_cost, one_way FROM data", conn)  # Removed batch_id
+    df = pd.read_sql_query("SELECT date, name, amount, toll, toll_cost, one_way FROM data", conn)
     conn.close()
 
-    # Convert date format and ensure amounts are whole numbers
-    df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
-    df["amount"] = df["amount"].astype(int)  # No decimal points
-    df["toll_cost"] = df["toll_cost"].astype(int)  # Toll should also be an integer
+    if not df.empty:
+        df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
+        df["amount"] = df["amount"].astype(int)
+        df["toll_cost"] = df["toll_cost"].astype(int)
 
     return df
+
 
 # ==============================
 # Initialize Session State AFTER Login
@@ -169,9 +171,26 @@ if st.session_state.confirmed_drivers:
                 ])
 
             save_to_db(new_entries)
-            
+
             # 🔹 Load fresh data immediately after saving
             df = load_from_db()
 
             st.success("✅ データが保存されました！")
+
+            # 🔹 Show 合計 section immediately after saving
+            st.header("📊 月ごとの集計")
+            if df.empty:
+                st.warning("データがありません。")
+            else:
+                df["年-月"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m")
+                df["amount"] = df.apply(lambda row: f"{row['amount']}*" if row["toll"] == "あり" else str(row["amount"]), axis=1)
+                
+                summary = df.groupby(["年-月", "name"], as_index=False).agg({"amount": "sum", "toll_cost": "sum"})
+                summary["合計金額"] = summary["amount"] + summary["toll_cost"]
+                summary = summary.drop(columns=["amount", "toll_cost"])
+
+                summary.columns = ["年-月", "名前", "金額"]
+                st.write(summary.pivot(index="年-月", columns="名前", values=["金額"]).fillna(""))
+
             st.rerun()  # Ensures the UI refreshes properly
+
