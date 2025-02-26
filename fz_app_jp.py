@@ -33,22 +33,25 @@ if not st.session_state.logged_in:
     st.stop()
 
 # ==============================
-# Google Sheets Authentication (Cached)
+# Google Sheets Authentication (Delayed Until After Login)
 # ==============================
-SHEET_ID = "1upehCYwnGEcKg_zVQG7jlnNUykFmvNbuAtnxzqvSEcA"
-SHEET_NAME = "Sheet1"
 
 @st.cache_resource
-def get_google_sheet():
+def get_google_credentials():
     creds_json = os.getenv("GOOGLE_CREDENTIALS")
     if creds_json:
-        creds_dict = json.loads(creds_json)
-        creds = Credentials.from_service_account_info(creds_dict, scopes=["https://www.googleapis.com/auth/spreadsheets"])
-        return gspread.authorize(creds).open_by_key(SHEET_ID).worksheet(SHEET_NAME)
+        return json.loads(creds_json)
     else:
         raise ValueError("GOOGLE_CREDENTIALS environment variable not found")
 
-sheet = get_google_sheet()
+@st.cache_resource
+def get_google_sheet():
+    creds_dict = get_google_credentials()
+    creds = Credentials.from_service_account_info(creds_dict, scopes=["https://www.googleapis.com/auth/spreadsheets"])
+    return gspread.authorize(creds).open_by_key("1upehCYwnGEcKg_zVQG7jlnNUykFmvNbuAtnxzqvSEcA").worksheet("Sheet1")
+
+if st.session_state.logged_in:
+    sheet = get_google_sheet()  # 🔹 Load Google Sheets **ONLY after login**
 
 # ==============================
 # Initialize Session State
@@ -76,7 +79,6 @@ st.header("データ入力")
 
 st.session_state.date = st.date_input("試合日を選択してください", value=st.session_state.date)
 
-# Driver selection
 driver_list = ["平野", "ケイン", "山﨑", "萩原", "仙波し", "仙波ち", "久保", "落合", "浜島", "野波",
                "末田", "芳本", "鈴木", "山田", "佐久間", "今井", "西川"]
 
@@ -91,11 +93,9 @@ for i, driver in enumerate(driver_list):
 
 st.session_state.selected_drivers = new_selected_drivers
 
-# Confirm Drivers Button
 if st.button("運転手を確定する"):
     st.session_state.confirmed_drivers = True
 
-# Only show amount selection & checkboxes after drivers are confirmed
 if st.session_state.confirmed_drivers:
     st.session_state.amount = st.radio("金額を選択してください", [200, 400, 600, 800, 1000, 1200])
 
@@ -105,12 +105,11 @@ if st.session_state.confirmed_drivers:
         st.session_state.toll_one_way[driver] = st.checkbox(f"{driver} の高速道路片道", value=st.session_state.toll_one_way.get(driver, False), key=f"toll_one_way_{driver}")
 
 # ==============================
-# Save Data to Google Sheets (Appending instead of Overwriting)
+# Save Data to Google Sheets
 # ==============================
 def append_data(new_entries):
     sheet.append_rows(new_entries, value_input_option="USER_ENTERED")
 
-# Submit Data
 if st.button("送信"):  
     if st.session_state.selected_drivers:
         batch_id = int(time.time())
@@ -119,21 +118,16 @@ if st.button("送信"):
         new_entries = []
         for driver in st.session_state.selected_drivers:
             amount = st.session_state.amount
-
-            # Adjust reimbursement
-            if st.session_state.one_way[driver]:  
-                amount /= 2  # 一般道路片道 → 半額
-            if st.session_state.toll_round_trip[driver]:  
-                amount = 0  # 高速道路往復 → 完全無視
-            if st.session_state.toll_one_way[driver]:  
-                amount /= 2  # 高速道路片道 → 半額適用
-
-            # 補足欄 logic
             supplement = ""
+
+            if st.session_state.one_way[driver]:  
+                amount /= 2  
             if st.session_state.toll_round_trip[driver]:  
-                supplement = f"++{game_date}"  # 高速道路往復
+                amount = 0  
+                supplement = f"++{game_date}"  
             elif st.session_state.toll_one_way[driver]:  
-                supplement = f"+{game_date}"  # 高速道路片道
+                amount /= 2  
+                supplement = f"+{game_date}"  
 
             new_entries.append([
                 st.session_state.date.strftime("%Y-%m-%d"), 
@@ -149,28 +143,31 @@ if st.button("送信"):
         st.success("データが保存されました！")
 
 # ==============================
-# Monthly Summary Section (Cached for Speed)
+# Monthly Summary Section (Lazy Loading for Speed)
 # ==============================
 st.header("📊 月ごとの集計")
 
-df = load_data()  # 🔹 Ensure df is loaded before checking
-
-if df.empty:
-    st.warning("データがありません。")
-else:
-    df["年-月"] = df["日付"].dt.strftime("%Y-%m")
-
-    summary = df.groupby(["年-月", "名前"], as_index=False)["金額"].sum()
+@st.cache_data(ttl=60)
+def load_summary():
+    records = sheet.get_values("A1:G50")  # Load only first 50 rows for speed
+    df = pd.DataFrame(records[1:], columns=records[0]) if records else pd.DataFrame()
     
-    # Ensure 補足 exists before applying groupby
-    if "補足" in df.columns:
-        summary["補足"] = df.groupby(["年-月", "名前"])["補足"].apply(lambda x: " ".join(x.dropna().unique())).reset_index(drop=True)
+    if not df.empty:
+        df["年-月"] = pd.to_datetime(df["日付"], errors="coerce").dt.strftime("%Y-%m")
+        summary = df.groupby(["年-月", "名前"], as_index=False)["金額"].sum()
+        if "補足" in df.columns:
+            summary["補足"] = df.groupby(["年-月", "名前"])["補足"].apply(lambda x: " ".join(x.dropna().unique())).reset_index(drop=True)
+        else:
+            summary["補足"] = ""
+        return summary.pivot(index="年-月", columns="名前", values=["金額", "補足"]).fillna("")
+    return pd.DataFrame()
+
+if st.session_state.logged_in:
+    summary = load_summary()
+    if not summary.empty:
+        st.write(summary)
     else:
-        summary["補足"] = ""
-
-    summary = summary.pivot(index="年-月", columns="名前", values=["金額", "補足"]).fillna("")
-    st.write(summary)
-
+        st.warning("データがありません。")
 
 # ==============================
 # Logout
