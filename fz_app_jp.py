@@ -87,25 +87,21 @@ create_db()
 # Load Data from SQLite
 # ==============================
 
-def load_from_db():
-    conn = sqlite3.connect(DB_FILE)
-    df = pd.read_sql_query("SELECT * FROM data", conn)
-    conn.close()
-    
-    if df.empty:
-        df = pd.DataFrame({
-            "id": [0],
-            "date": ["2000-01-01"],
-            "name": ["サンプル"],
-            "amount": [0],
-            "toll": ["なし"],
-            "one_way": ["なし"],
-            "batch_id": [0],
-            "notes": ["初期データ"]
-        })
-    
-    df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")  # Ensure correct format
-    return df
+df = load_from_db()
+st.write("📌 Full DB Content:", df)  # Debugging: See if anything is actually stored
+
+if df.empty:
+    st.warning("データがありません。")
+else:
+    selected_date = st.date_input("編集する日付を選択", value=datetime.today())
+    selected_date_str = selected_date.strftime("%Y-%m-%d")
+
+    # Debugging: Show stored dates
+    st.write(f"📌 Selected Date: {selected_date_str}")
+    st.write("📌 Available Dates in DB:", df["date"].unique())  # Check what dates exist
+
+    filtered_df = df[df["date"] == selected_date_str]
+
 
 # ==============================
 # Data Entry Section
