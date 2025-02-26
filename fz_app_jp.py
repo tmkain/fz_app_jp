@@ -45,6 +45,7 @@ def create_db():
             name TEXT, 
             amount REAL, 
             toll TEXT, 
+            toll_cost REAL,
             one_way TEXT, 
             batch_id INTEGER
         )
@@ -59,12 +60,13 @@ create_db()
 # ==============================
 def load_from_db():
     conn = sqlite3.connect(DB_FILE)
-    df = pd.read_sql_query("SELECT date, name, amount, toll, one_way FROM data", conn)  # Removed batch_id
+    df = pd.read_sql_query("SELECT date, name, amount, toll, toll_cost, one_way FROM data", conn)  # Removed batch_id
     conn.close()
 
     # Convert date format and ensure amounts are whole numbers
     df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
     df["amount"] = df["amount"].astype(int)  # No decimal points
+    df["toll_cost"] = df["toll_cost"].astype(int)  # Toll should also be an integer
 
     return df
 
@@ -83,6 +85,8 @@ if "toll_round_trip" not in st.session_state:
     st.session_state.toll_round_trip = {}
 if "toll_one_way" not in st.session_state:
     st.session_state.toll_one_way = {}
+if "toll_cost" not in st.session_state:
+    st.session_state.toll_cost = {}  # Store toll cost per driver
 if "amount" not in st.session_state:
     st.session_state.amount = 200  
 
@@ -114,21 +118,25 @@ if st.button("運転手を確定する"):
 if st.session_state.confirmed_drivers:
     st.session_state.amount = st.radio("金額を選択してください", [200, 400, 600, 800, 1000, 1200])
 
-    # Show checkboxes for each driver
+    # Show checkboxes for each driver and input fields for toll costs
     for driver in st.session_state.selected_drivers:
         st.session_state.one_way[driver] = st.checkbox(f"{driver} の一般道路片道", value=st.session_state.one_way.get(driver, False), key=f"one_way_{driver}")
         st.session_state.toll_round_trip[driver] = st.checkbox(f"{driver} の高速道路往復", value=st.session_state.toll_round_trip.get(driver, False), key=f"toll_round_trip_{driver}")
         st.session_state.toll_one_way[driver] = st.checkbox(f"{driver} の高速道路片道", value=st.session_state.toll_one_way.get(driver, False), key=f"toll_one_way_{driver}")
 
+        # Show input field for toll cost if either toll option is selected
+        if st.session_state.toll_round_trip[driver] or st.session_state.toll_one_way[driver]:
+            st.session_state.toll_cost[driver] = st.number_input(f"{driver} の高速料金（円）", min_value=0, value=st.session_state.toll_cost.get(driver, 0), key=f"toll_cost_{driver}")
+
 def save_to_db(entries):
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
 
-    formatted_entries = [(e[0], e[1], e[2], e[3], e[4], e[5]) for e in entries]
+    formatted_entries = [(e[0], e[1], e[2], e[3], e[4], e[5], e[6]) for e in entries]
 
     c.executemany("""
-        INSERT INTO data (date, name, amount, toll, one_way, batch_id)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO data (date, name, amount, toll, toll_cost, one_way, batch_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     """, formatted_entries)
 
     conn.commit()
@@ -142,19 +150,20 @@ if st.session_state.confirmed_drivers:
 
             new_entries = []
             for driver in st.session_state.selected_drivers:
-                amount = st.session_state.amount
+                amount = st.session_state.amount + st.session_state.toll_cost.get(driver, 0)  # Add toll cost to amount
                 if st.session_state.one_way.get(driver, False):  
                     amount /= 2  
                 if st.session_state.toll_round_trip.get(driver, False):  
-                    amount = 0  
+                    amount = 0 + st.session_state.toll_cost.get(driver, 0)  
                 elif st.session_state.toll_one_way.get(driver, False):  
                     amount /= 2  
 
                 new_entries.append([
                     game_date,  
                     driver,  
-                    int(amount),  # Convert to whole number
+                    int(amount),  
                     "あり" if st.session_state.toll_round_trip.get(driver, False) or st.session_state.toll_one_way.get(driver, False) else "なし",
+                    st.session_state.toll_cost.get(driver, 0),
                     "あり" if st.session_state.one_way.get(driver, False) else "なし",
                     batch_id
                 ])
@@ -162,29 +171,3 @@ if st.session_state.confirmed_drivers:
             save_to_db(new_entries)
             st.success("✅ データが保存されました！")
             st.rerun()
-
-# ==============================
-# Monthly Summary Section
-# ==============================
-st.header("📊 月ごとの集計")
-
-df = load_from_db()
-
-if df.empty:
-    st.warning("データがありません。")
-else:
-    df["年-月"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m")
-    df["amount"] = df.apply(lambda row: f"{row['amount']}*" if row["toll"] == "あり" else str(row["amount"]), axis=1)
-    
-    summary = df.groupby(["年-月", "name"], as_index=False)["amount"].sum()
-
-    summary.columns = ["年-月", "名前", "金額"]  # Change column headers to Japanese
-    st.write(summary.pivot(index="年-月", columns="名前", values=["金額"]).fillna(""))
-
-# ==============================
-# Logout
-# ==============================
-if st.button("✅ 完了"):
-    st.session_state.logged_in = False
-    st.success("✅ ログアウトしました。")
-    st.rerun()
