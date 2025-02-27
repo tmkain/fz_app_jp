@@ -228,6 +228,9 @@ else:
     # ✅ Define `pending_inputs` BEFORE using it
     pending_inputs = {}
 
+    # ✅ Initialize updated_values at the beginning
+    updated_values = {}
+
     # ✅ Copy pivot table and convert to strings to allow formatting
     styled_df = pivot_summary.astype(str)
 
