@@ -311,7 +311,6 @@ if st.button("更新", key="update_pending"):
                         st.write(f"✅ Debugging: Updated row {i} with {new_value} and cleared 補足.")
 
         st.success("✅ 高速料金が更新されました！")
-        st.rerun()
     else:
         st.warning("🚨 変更された値がありません。更新するには値を入力してください。")
 
