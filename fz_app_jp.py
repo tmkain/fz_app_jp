@@ -123,24 +123,48 @@ if st.button("送信", key="submit_button"):
 
         new_entries = []
         for driver in st.session_state.selected_drivers:
-            toll_cost = st.session_state.toll_cost.get(driver, "未定")
+            # ✅ Ensure checkboxes default to False when not selected
+            one_way = st.session_state.one_way.get(driver, False)
+            toll_round_trip = st.session_state.toll_round_trip.get(driver, False)
+            toll_one_way = st.session_state.toll_one_way.get(driver, False)
+
+            # ✅ Ensure toll_cost defaults to 0 instead of "未定"
+            toll_cost = st.session_state.toll_cost.get(driver, "0")  
             toll_cost_numeric = pd.to_numeric(toll_cost, errors="coerce")
             toll_cost = int(toll_cost_numeric) if not pd.isna(toll_cost_numeric) else "未定"
 
-            amount = st.session_state.amount
-            if st.session_state.one_way[driver]:  
-                amount /= 2  
-            if st.session_state.toll_round_trip[driver]:  
-                amount = toll_cost  
-            elif st.session_state.toll_one_way[driver]:  
-                amount = (st.session_state.amount / 2) + (toll_cost if toll_cost != "未定" else 0)  
+            # ✅ Start with the base amount
+            amount = st.session_state.amount  
+            
+            # ✅ Adjust reimbursement calculations correctly
+            if one_way:  
+                amount /= 2  # 一般道路片道 → 半額
+            if toll_round_trip:  
+                amount = toll_cost  # 高速道路往復 → Only reimburse toll
+            elif toll_one_way:  
+                amount = (st.session_state.amount / 2) + (toll_cost if toll_cost != "未定" else 0)  # 半額 + Toll
 
+            # ✅ Ensure clean values for Google Sheets
+            highway_use = "あり" if toll_round_trip or toll_one_way else "なし"
+            one_way_status = "あり" if one_way else "なし"
+
+            # ✅ Only apply "未定" in 補足 if toll_cost was actually "未定"
             supplement = "未定*" if toll_cost == "未定" else ""
-            new_entries.append([st.session_state.date.strftime("%Y-%m-%d"), driver, int(amount) if toll_cost != "未定" else "未定", "あり" if st.session_state.toll_round_trip[driver] or st.session_state.toll_one_way[driver] else "なし", supplement])
+
+            new_entries.append([
+                st.session_state.date.strftime("%Y-%m-%d"), 
+                driver, 
+                int(amount) if toll_cost != "未定" else "未定", 
+                highway_use,  # ✅ Stores "あり" or "なし"
+                one_way_status,  # ✅ Stores "あり" or "なし"
+                supplement
+            ])
 
         append_data(new_entries)
         st.success("✅ データが保存されました！")
         st.rerun()
+
+
 
 def load_from_sheets():
     records = sheet.get_all_values()
