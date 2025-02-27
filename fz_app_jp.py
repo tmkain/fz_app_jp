@@ -191,7 +191,7 @@ else:
 
     # ✅ Move input fields BELOW the 更新 button
     if st.button("更新", key="update_pending"):
-    updated_values = {}  # ✅ Always initialize `updated_values` to prevent NameError
+        updated_values = {}  # ✅ Always initialize `updated_values` to prevent NameError
 
     # ✅ Retrieve latest user inputs
     for (index, col) in pending_inputs.keys():
