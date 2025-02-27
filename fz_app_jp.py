@@ -180,39 +180,70 @@ else:
     df["高速料金"] = df["高速料金"].replace("未定", 0)  # Convert "未定" to 0 for calculations
     df["高速料金"] = pd.to_numeric(df["高速料金"], errors="coerce").fillna(0).astype(int)
 
-    # Summarize data
+    # Summarize data dynamically
     summary = df.groupby(["年-月", "名前"], as_index=False).agg({"金額": "sum", "高速料金": "sum"})
 
     # Ensure numerical values before adding
     summary["金額"] = summary["金額"].astype(int)
     summary["高速料金"] = summary["高速料金"].astype(int)
 
-    # Compute final total
+    # Compute final total dynamically
     summary["合計金額"] = summary["金額"] + summary["高速料金"]
 
     # Drop unnecessary columns dynamically
     if "高速料金" in summary.columns:
         summary = summary.drop(columns=["高速料金"])
 
-    # Print column names for debugging
+    # Debugging to check current columns
     st.write("📌 Debugging: Current summary columns:", summary.columns.tolist())
 
-    # Ensure proper renaming dynamically
-    expected_columns = ["年-月", "名前", "合計金額"]
-    if len(summary.columns) == len(expected_columns):
-        summary.columns = expected_columns
+    # Dynamically rename based on column count
+    if "合計金額" in summary.columns and len(summary.columns) == 3:
+        summary.rename(columns={"合計金額": "金額"}, inplace=True)
     else:
-        st.warning(f"⚠️ Column count mismatch! Expected {len(expected_columns)}, but found {len(summary.columns)}. Adjusting dynamically.")
-        if "合計金額" in summary.columns:
-            summary.rename(columns={"合計金額": "金額"}, inplace=True)  # Rename dynamically if needed
+        st.warning(f"⚠️ Column count mismatch! Found columns: {summary.columns.tolist()}")
 
     # Ensure 合計金額 is numeric before pivoting
-    summary["合計金額"] = pd.to_numeric(summary["合計金額"], errors="coerce").fillna(0).astype(int)
+    summary["金額"] = pd.to_numeric(summary["金額"], errors="coerce").fillna(0).astype(int)
 
     # Ensure all missing values are properly handled
     summary.fillna(0, inplace=True)
 
-    # 🚀 Correct the column used in pivot (was "金額", now "合計金額")
-    pivot_summary = summary.pivot(index="年-月", columns="名前", values="合計金額").fillna(0).astype(int)
+    # Pivot dynamically to fit all drivers
+    pivot_summary = summary.pivot(index="年-月", columns="名前", values="金額").fillna(0).astype(int)
 
     st.write(pivot_summary)
+
+# ==============================
+# ✅ Define `save_to_sheets` (Fix for "NameError")
+# ==============================
+def save_to_sheets(entries):
+    sheet.append_rows(entries, value_input_option="USER_ENTERED")
+
+if st.session_state.confirmed_drivers:
+    if st.button("送信"):  
+        if st.session_state.selected_drivers:
+            game_date = st.session_state.date.strftime("%Y-%m-%d")
+
+            new_entries = []
+            for driver in st.session_state.selected_drivers:
+                amount = st.session_state.amount + st.session_state.toll_cost.get(driver, 0)
+                if st.session_state.one_way.get(driver, False):  
+                    amount /= 2  
+                if st.session_state.toll_round_trip.get(driver, False):  
+                    amount = st.session_state.toll_cost.get(driver, 0)  # Ignore base amount, only reimburse toll
+                elif st.session_state.toll_one_way.get(driver, False):  
+                    amount = (st.session_state.amount / 2) + st.session_state.toll_cost.get(driver, 0)  # Half base amount + full toll
+
+                new_entries.append([
+                    game_date,  
+                    driver,  
+                    int(amount),  
+                    "あり" if st.session_state.toll_round_trip.get(driver, False) or st.session_state.toll_one_way.get(driver, False) else "なし",
+                    st.session_state.toll_cost.get(driver, 0),
+                    "あり" if st.session_state.one_way.get(driver, False) else "なし"
+                ])
+
+            save_to_sheets(new_entries)
+            st.success("✅ データが保存されました！")
+            st.rerun()
