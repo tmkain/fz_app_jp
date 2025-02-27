@@ -288,8 +288,8 @@ if st.button("更新", key="update_pending"):
                 continue
 
             # ✅ Clean up all spaces in Google Sheets data before comparison
-            row_date_clean = "".join(row[0].strip().split())  # "日付" column
-            row_driver_clean = "".join(row[1].strip().split())  # "名前" column
+            row_date_clean = "".join(pd.to_datetime(row[0], errors="coerce").strftime("%Y-%m").split())  # ✅ Convert Google Sheets date to YYYY-MM
+            formatted_index_clean = "".join(pd.to_datetime(index, errors="coerce").strftime("%Y-%m").split())  # ✅ Ensure comparison is YYYY-MM
 
             for (index, col), new_value in updated_values.items():
                 formatted_index_clean = "".join(pd.to_datetime(index, errors="coerce").strftime("%Y-%m").split())  # ✅ Use only "YYYY-MM"
