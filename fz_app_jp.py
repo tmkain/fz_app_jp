@@ -276,7 +276,7 @@ if st.button("\u66f4\u65b0", key="update_pending"):
         print("📌 Debugging: Current updated_values (Converted for JSON):", debug_updated_values)
 
         all_records = sheet.get_all_values()
-        print("\ud83d\udccc Debugging: Retrieved all records from Google Sheets:", all_records[:5])  # Show first 5 rows for safety
+        print("📌 Debugging: Retrieved all records from Google Sheets:", all_records[:5])  # Show first 5 rows for safety
 
         for i, row in enumerate(all_records):
             if i == 0:
