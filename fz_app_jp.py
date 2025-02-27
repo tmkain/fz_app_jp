@@ -182,8 +182,8 @@ else:
 
             # ✅ Store input fields for later display
             if is_pending:
-                pending_inputs[(index, col)] = st.text_input(f"{index} - {col} の高速料金を入力", "")
-                inputs_section.append((index, col, pending_inputs[(index, col)]))  # Store for later
+                pending_inputs[(index, col)] = True  # Mark for input field generation
+                inputs_section.append((index, col))  # Store for later
 
     # ✅ Convert to HTML & Render with Markdown
     styled_html = styled_df.to_html(escape=False)
@@ -192,21 +192,28 @@ else:
     # ✅ Initialize updated_values at the beginning
     updated_values = {}
 
-    # ✅ Retrieve latest user inputs and store in session state
-    for (index, col) in pending_inputs.keys():
-        input_key = f"final_input_{index}_{col}"
-        
-        # Ensure each input field has a unique session key
-        if input_key not in st.session_state:
-            st.session_state[input_key] = ""
-        
-        # Display text input field for pending toll values
-        updated_value = st.text_input(f"{index} - {col} の高速料金を入力", st.session_state[input_key], key=input_key).strip()
-        
-        # Store latest user input in session state
-        if updated_value:
-            st.session_state[input_key] = updated_value  # ✅ Persist user input
-            updated_values[(index, col)] = updated_value  # ✅ Add to update list
+    # ✅ Create a container for input fields to ensure only one instance
+    input_container = st.container()
+
+    with input_container:
+        for (index, col) in pending_inputs.keys():
+            input_key = f"final_input_{index}_{col}"
+            
+            # ✅ Ensure each input field has a unique session key
+            if input_key not in st.session_state:
+                st.session_state[input_key] = ""
+            
+            # ✅ Display a single text input field above "更新" button
+            updated_value = st.text_input(
+                f"{index} - {col} の高速料金を入力", 
+                st.session_state[input_key], 
+                key=input_key
+            ).strip()
+            
+            # ✅ Store latest user input in session state (only if different)
+            if updated_value and updated_value != st.session_state[input_key]:
+                st.session_state[input_key] = updated_value
+                updated_values[(index, col)] = updated_value  # ✅ Add to update list
 
     # ✅ Update Google Sheets when "更新" button is clicked
     if st.button("更新", key="update_pending"):
@@ -231,9 +238,6 @@ else:
 
             # ✅ Force Streamlit to reload the updated data
             st.rerun()
-
-
-
 
 # ==============================
 # ✅ Logout & Reset Button (Moved to the bottom)
