@@ -190,26 +190,26 @@ else:
     # Compute final total dynamically
     summary["合計金額"] = summary["金額"] + summary["高速料金"]
 
-    # Drop unnecessary columns dynamically
+    # Debugging: Print current column names
+    st.write("📌 Debugging: Current summary columns before renaming:", summary.columns.tolist())
+
+    # Dynamically adjust columns
     if "高速料金" in summary.columns:
-        summary = summary.drop(columns=["高速料金"])
+        summary.drop(columns=["高速料金"], inplace=True)
 
-    # Debugging to check current columns
-    st.write("📌 Debugging: Current summary columns:", summary.columns.tolist())
-
-    # Dynamically rename based on column count
-    if "合計金額" in summary.columns and len(summary.columns) == 3:
+    if "合計金額" in summary.columns:
         summary.rename(columns={"合計金額": "金額"}, inplace=True)
-    else:
-        st.warning(f"⚠️ Column count mismatch! Found columns: {summary.columns.tolist()}")
 
-    # Ensure 合計金額 is numeric before pivoting
+    # Debugging: Print updated column names
+    st.write("📌 Debugging: Columns after adjustments:", summary.columns.tolist())
+
+    # Ensure 金額 is numeric before pivoting
     summary["金額"] = pd.to_numeric(summary["金額"], errors="coerce").fillna(0).astype(int)
 
     # Ensure all missing values are properly handled
     summary.fillna(0, inplace=True)
 
-    # Pivot dynamically to fit all drivers
+    # 🚀 Correct the column used in pivot dynamically
     pivot_summary = summary.pivot(index="年-月", columns="名前", values="金額").fillna(0).astype(int)
 
     st.write(pivot_summary)
