@@ -8,6 +8,31 @@ import json
 import time
 
 # ==============================
+# Secure Full-Screen Login System
+# ==============================
+
+@st.cache_resource
+def get_credentials():
+    return os.getenv("APP_USERNAME"), os.getenv("APP_PASSWORD")
+
+USERNAME, PASSWORD = get_credentials()
+
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+if not st.session_state.logged_in:
+    st.markdown("<div style='text-align:center'><h2>🔑 ログイン</h2></div>", unsafe_allow_html=True)
+    entered_username = st.text_input("ユーザー名", value="", key="username")
+    entered_password = st.text_input("パスワード", value="", type="password", key="password")
+    if st.button("ログイン"):
+        if entered_username == USERNAME and entered_password == PASSWORD:
+            st.session_state.logged_in = True
+            st.rerun()
+        else:
+            st.error("🚫 ユーザー名またはパスワードが違います")
+    st.stop()
+
+# ==============================
 # Google Sheets Authentication (Cached)
 # ==============================
 SHEET_ID = "1upehCYwnGEcKg_zVQG7jlnNUykFmvNbuAtnxzqvSEcA"
@@ -201,16 +226,21 @@ else:
     df["年-月"] = pd.to_datetime(df["日付"]).dt.strftime("%Y-%m")
     df["金額"] = pd.to_numeric(df["金額"], errors="coerce").fillna(0).astype(int)
 
-    # ✅ Fix: Use pivot_table() instead of pivot() to handle duplicates
     pivot_summary = df.pivot_table(index="年-月", columns="名前", values="金額", aggfunc="sum", fill_value=0).astype(int)
 
     st.write(pivot_summary)
 
 # ==============================
-# Logout
+# ✅ Logout & Reset Button (Moved to the bottom)
 # ==============================
 if st.button("✅ 完了"):
-    st.session_state.logged_in = False
-    st.session_state.selected_drivers = set()
+    st.session_state.logged_in = False  # ✅ Logs the user out
+    st.session_state.selected_drivers.clear()
+    st.session_state.confirmed_drivers = False
+    st.session_state.amount = 200
+    st.session_state.one_way.clear()
+    st.session_state.toll_round_trip.clear()
+    st.session_state.toll_one_way.clear()
+    st.session_state.toll_cost.clear()
     st.success("✅ ログアウトしました。")
     st.rerun()
