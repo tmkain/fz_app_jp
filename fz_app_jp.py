@@ -143,10 +143,33 @@ if st.session_state.confirmed_drivers:
 # Monthly Summary Section
 # ==============================
 st.header("📊 月ごとの集計")
-df = load_from_sheets()
+
+df = load_from_sheets()  # Reload data every time
+
 if df.empty:
     st.warning("データがありません。")
 else:
     df["年-月"] = pd.to_datetime(df["日付"]).dt.strftime("%Y-%m")
-    pivot_summary = df.pivot(index="年-月", columns="名前", values="金額").fillna(0).astype(int)
+
+    df["金額"] = pd.to_numeric(df["金額"], errors="coerce").fillna(0).astype(int)
+    df["高速料金"] = df["高速料金"].replace("未定", 0)  
+    df["高速料金"] = pd.to_numeric(df["高速料金"], errors="coerce").fillna(0).astype(int)
+
+    # Summarize data dynamically
+    summary = df.groupby(["年-月", "名前"], as_index=False).agg({"金額": "sum", "高速料金": "sum"})
+
+    # Compute final total dynamically
+    summary["合計金額"] = summary["金額"] + summary["高速料金"]
+
+    # Drop "高速料金" if it exists
+    if "高速料金" in summary.columns:
+        summary.drop(columns=["高速料金"], inplace=True)
+
+    # Rename 合計金額 to 金額
+    summary.rename(columns={"合計金額": "金額"}, inplace=True)
+
+    # ✅ Fix: Use pivot_table() instead of pivot() to avoid duplicate index issues
+    pivot_summary = summary.pivot_table(index="年-月", columns="名前", values="金額", aggfunc="sum", fill_value=0).astype(int)
+
     st.write(pivot_summary)
+
