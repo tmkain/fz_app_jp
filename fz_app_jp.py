@@ -233,16 +233,16 @@ else:
         return f"<b>{value}</b>" if is_pending else f"{value}"  # Bold formatting if "未定"
 
     # ✅ Copy pivot table and convert to strings to allow formatting
-styled_df = pivot_summary.astype(str)  # 🔹 Convert to string before inserting HTML
+    styled_df = pivot_summary.astype(str)
 
-for col in styled_df.columns:
-    for index, value in styled_df[col].items():
-        # ✅ Correctly filter df to check if "未定" exists for that driver and month
-        filtered_df = df[(df["年-月"] == index) & (df["名前"] == col)]
-        is_pending = filtered_df["未定フラグ"].any() if not filtered_df.empty else False
+    for col in styled_df.columns:
+        for index, value in styled_df[col].items():
+            # ✅ Correctly filter df to check if "未定" exists for that driver and month
+            filtered_df = df[(df["年-月"] == index) & (df["名前"] == col)]
+            is_pending = filtered_df["未定フラグ"].any() if not filtered_df.empty else False
 
-        # ✅ Now it safely stores strings instead of mixed int/string types
-        styled_df.at[index, col] = format_cell(value, is_pending)
+            # ✅ Store formatted values in the table
+            styled_df.at[index, col] = format_cell(value, is_pending)
 
             # ✅ Add an input field for "未定" updates
             if is_pending:
@@ -264,6 +264,7 @@ for col in styled_df.columns:
 
         st.success("✅ 高速料金が更新されました！")
         st.rerun()
+
 
 # ==============================
 # ✅ Logout & Reset Button (Moved to the bottom)
