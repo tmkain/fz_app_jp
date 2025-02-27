@@ -271,7 +271,9 @@ for (index, col), user_input in pending_inputs.items():
 # ✅ Update Google Sheets when "更新" button is clicked
 if st.button("更新", key="update_pending"):
     if len(updated_values) > 0:  # ✅ Ensure `updated_values` exists before proceeding
-        st.write("📌 Debugging: Current updated_values:", updated_values)
+        # ✅ Convert tuple keys to strings for debugging
+        debug_updated_values = {f"{index}-{col}": value for (index, col), value in updated_values.items()}
+        st.write("📌 Debugging: Current updated_values (Converted for JSON):", debug_updated_values)
 
         all_records = sheet.get_all_values()
         st.write("📌 Debugging: Retrieved all records from Google Sheets:", all_records[:5])  # Show first 5 rows for safety
@@ -287,12 +289,12 @@ if st.button("更新", key="update_pending"):
 
             # ✅ Clean up all spaces in Google Sheets data before comparison
             row_date_clean = "".join(row[0].strip().split())  # "日付" column
-            formatted_index_clean = "".join(pd.to_datetime(index, errors="coerce").strftime("%Y-%m-%d").split())
-
             row_driver_clean = "".join(row[1].strip().split())  # "名前" column
-            col_clean = "".join(col.strip().split())
 
             for (index, col), new_value in updated_values.items():
+                formatted_index_clean = "".join(pd.to_datetime(index, errors="coerce").strftime("%Y-%m-%d").split())
+                col_clean = "".join(col.strip().split())
+
                 st.write(f"🔍 Debugging: Checking row {i} | Date: {row_date_clean} vs {formatted_index_clean} | Name: {row_driver_clean} vs {col_clean}")
 
                 # ✅ Compare cleaned values
@@ -312,6 +314,7 @@ if st.button("更新", key="update_pending"):
         st.rerun()
     else:
         st.warning("🚨 変更された値がありません。更新するには値を入力してください。")
+
 
 
 
