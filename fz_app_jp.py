@@ -189,37 +189,49 @@ else:
     styled_html = styled_df.to_html(escape=False)
     st.markdown(styled_html, unsafe_allow_html=True)
 
-    # ✅ Move input fields BELOW the 更新 button
-    if st.button("更新", key="update_pending"):
-        updated_values = {}  # ✅ Always initialize `updated_values` to prevent NameError
+    # ✅ Initialize updated_values at the beginning
+    updated_values = {}
 
-    # ✅ Retrieve latest user inputs
+    # ✅ Retrieve latest user inputs and store in session state
     for (index, col) in pending_inputs.keys():
-        updated_value = st.session_state.get(f"final_input_{index}_{col}", "").strip()
+        input_key = f"final_input_{index}_{col}"
+        
+        # Ensure each input field has a unique session key
+        if input_key not in st.session_state:
+            st.session_state[input_key] = ""
+        
+        # Display text input field for pending toll values
+        updated_value = st.text_input(f"{index} - {col} の高速料金を入力", st.session_state[input_key], key=input_key).strip()
+        
+        # Store latest user input in session state
         if updated_value:
-            updated_values[(index, col)] = updated_value  # ✅ Store latest values
+            st.session_state[input_key] = updated_value  # ✅ Persist user input
+            updated_values[(index, col)] = updated_value  # ✅ Add to update list
 
-    if updated_values:  # ✅ Only update if there are actual changes
-        all_records = sheet.get_all_values()
+    # ✅ Update Google Sheets when "更新" button is clicked
+    if st.button("更新", key="update_pending"):
+        if updated_values:  # ✅ Only proceed if there are actual changes
+            all_records = sheet.get_all_values()
 
-        for i, row in enumerate(all_records):
-            if i == 0:
-                continue  # ✅ Skip headers
+            for i, row in enumerate(all_records):
+                if i == 0:
+                    continue  # ✅ Skip headers
+                
+                row_date = row[0].strip()
+                row_driver = row[1].strip()
 
-            # ✅ Match "年-月" and "名前" correctly
-            row_date = row[0].strip()  # Ensure no extra spaces
-            row_driver = row[1].strip()
+                for (index, col), new_value in updated_values.items():
+                    formatted_index = str(index)  # Ensure consistent date formatting
 
-            for (index, col), new_value in updated_values.items():
-                # ✅ Convert index format if needed to match Google Sheets
-                formatted_index = str(index)  # Adjust if date format needs to change
+                    if row_date == formatted_index and row_driver == col:
+                        sheet.update_cell(i + 1, 3, new_value)  # ✅ Update 金額 column
+                        sheet.update_cell(i + 1, 5, "")  # ✅ Clear "未定" from 補足 column
 
-                if row_date == formatted_index and row_driver == col:
-                    sheet.update_cell(i + 1, 3, new_value)  # ✅ Update 金額 column
-                    sheet.update_cell(i + 1, 5, "")  # ✅ Clear "未定" from 補足 column
+            st.success("✅ 高速料金が更新されました！")
 
-        st.success("✅ 高速料金が更新されました！")
-        st.rerun()
+            # ✅ Force Streamlit to reload the updated data
+            st.rerun()
+
 
 
 
