@@ -168,7 +168,7 @@ if st.button("送信", key="submit_button"):
                 amount = (st.session_state.amount / 2) + (toll_cost if toll_cost != "未定" else 0)  
 
             # ✅ Ensure "補足" (Notes) correctly saves "未定"
-            supplement = "未定*" if toll_cost == "未定" else ""
+            supplement = "未定" if toll_cost == "未定" else ""
 
             new_entries.append([
                 st.session_state.date.strftime("%Y-%m-%d"), 
@@ -266,7 +266,7 @@ if st.button("更新", key="update_pending"):
             row_date = row[0].strip()  # "日付" column
             row_driver = row[1].strip()  # "名前" column
             existing_amount = row[2].strip()  # "金額" column (to be updated)
-            existing_note = row[4].strip()  # "補足" column (may contain "未定*")
+            existing_note = row[4].strip()  # "補足" column (may contain "未定")
 
             for (index, col), new_value in updated_values.items():
                 formatted_index = str(index)  # Ensure date matches
@@ -275,8 +275,8 @@ if st.button("更新", key="update_pending"):
                 if row_date == formatted_index and row_driver == col:
                     # ✅ Update if existing note starts with "未定"
                     if existing_note.startswith("未定"):
-                        sheet.update_cell(i + 1, 3, new_value)  # ✅ Correct column: "金額" (Column C, index 3)
-                        sheet.update_cell(i + 1, 5, "")  # ✅ Correct column: "補足" (Column E, index 5)
+                        sheet.update_cell(i + 1, 2, new_value)  # ✅ Correct column: "金額" (Column C, index 3)
+                        sheet.update_cell(i + 1, 4, "")  # ✅ Correct column: "補足" (Column E, index 5)
 
         st.success("✅ 高速料金が更新されました！")
 
