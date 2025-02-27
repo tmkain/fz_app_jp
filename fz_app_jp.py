@@ -261,23 +261,28 @@ if st.button("更新", key="update_pending"):
 
         for i, row in enumerate(all_records):
             if i == 0:
-                continue  # ✅ Skip headers
-            
-            row_date = row[0].strip()  # "日付" column
-            row_driver = row[1].strip()  # "名前" column
+               continue  # ✅ Skip headers
+    
+            row_date = row[0].strip()  # "日付" column from Google Sheets
+            row_driver = row[1].strip()  # "名前" column from Google Sheets
             existing_amount = row[2].strip()  # "金額" column (to be updated)
-            existing_note = row[4].strip()  # "補足" column (may contain "未定")
+            existing_note = row[4].strip()  # "補足" column (may contain "未定*")
 
             for (index, col), new_value in updated_values.items():
-                formatted_index = str(index)  # Ensure date matches
+                formatted_index = pd.to_datetime(index, errors="coerce").strftime("%Y-%m-%d")  # ✅ Ensure date format matches Google Sheets
 
-                # ✅ Match both the date and driver name
-                if row_date == formatted_index and row_driver == col:
+                # ✅ Debugging - Print comparisons to find mismatches
+                st.write(f"Comparing: row_date={row_date}, formatted_index={formatted_index}, row_driver={row_driver}, col={col}")
+
+                # ✅ Ensure both date and driver name match correctly
+                if row_date.strip() == formatted_index.strip() and row_driver.strip() == col.strip():
                     # ✅ Update if existing note starts with "未定"
                     if existing_note.startswith("未定"):
-                        sheet.update_cell(i + 1, 2, new_value)  # ✅ Correct column: "金額" (Column C, index 3)
-                        sheet.update_cell(i + 1, 4, "")  # ✅ Correct column: "補足" (Column E, index 5)
+                        sheet.update_cell(i + 1, 3, new_value)  # ✅ Update "金額" column (Column C, index 3)
+                        sheet.update_cell(i + 1, 5, "")  # ✅ Clear "補足" column (Column E, index 5)
 
+
+        
         st.success("✅ 高速料金が更新されました！")
 
         # ✅ Ensure Google Sheets updates before rerunning
