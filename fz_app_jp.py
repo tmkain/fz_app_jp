@@ -193,16 +193,19 @@ else:
     # Debugging: Print current column names
     st.write("📌 Debugging: Current summary columns before renaming:", summary.columns.tolist())
 
-    # 🚀 NEW FIX: Drop any duplicate "金額" columns before renaming
+    # 🚀 NEW FIX: Drop any duplicate columns before renaming
     summary = summary.loc[:, ~summary.columns.duplicated()]
 
     # Drop "高速料金" if it exists
     if "高速料金" in summary.columns:
         summary.drop(columns=["高速料金"], inplace=True)
 
-    # Rename 合計金額 to 金額 if necessary
-    if "合計金額" in summary.columns:
-        summary.rename(columns={"合計金額": "金額"}, inplace=True)
+    # 🚀 NEW FIX: Drop existing "金額" column before renaming if both exist
+    if "合計金額" in summary.columns and "金額" in summary.columns:
+        summary.drop(columns=["金額"], inplace=True)
+
+    # Rename 合計金額 to 金額
+    summary.rename(columns={"合計金額": "金額"}, inplace=True)
 
     # Debugging: Print updated column names
     st.write("📌 Debugging: Columns after adjustments:", summary.columns.tolist())
@@ -217,6 +220,7 @@ else:
     pivot_summary = summary.pivot(index="年-月", columns="名前", values="金額").fillna(0).astype(int)
 
     st.write(pivot_summary)
+
 
 # ==============================
 # ✅ Define `save_to_sheets` (Fix for "NameError")
