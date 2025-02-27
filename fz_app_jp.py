@@ -191,7 +191,7 @@ else:
 
     # ✅ Move input fields BELOW the 更新 button
     if st.button("更新", key="update_pending"):
-        updated_values = {}
+    updated_values = {}  # ✅ Always initialize `updated_values` to prevent NameError
 
     # ✅ Retrieve latest user inputs
     for (index, col) in pending_inputs.keys():
@@ -199,7 +199,7 @@ else:
         if updated_value:
             updated_values[(index, col)] = updated_value  # ✅ Store latest values
 
-    if updated_values:  # ✅ Only update if there are changes
+    if updated_values:  # ✅ Only update if there are actual changes
         all_records = sheet.get_all_values()
 
         for i, row in enumerate(all_records):
@@ -220,6 +220,7 @@ else:
 
         st.success("✅ 高速料金が更新されました！")
         st.rerun()
+
 
 
 # ==============================
