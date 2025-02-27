@@ -279,8 +279,16 @@ if st.button("更新", key="update_pending"):
                 # ✅ Debugging - Print comparisons to find mismatches
                 st.write(f"Comparing: row_date={row_date}, formatted_index={formatted_index}, row_driver={row_driver}, col={col}")
 
-                # ✅ Ensure both date and driver name match correctly
-                if row_date == formatted_index.strip() and row_driver == col.strip():
+                # ✅ Clean up all spaces before comparison
+                row_date_clean = "".join(row_date.split())  
+                formatted_index_clean = "".join(formatted_index.split())
+
+                row_driver_clean = "".join(row_driver.split())  
+                col_clean = "".join(col.split())
+
+                # ✅ Compare cleaned values
+                if row_date_clean == formatted_index_clean and row_driver_clean == col_clean:
+
                     # ✅ Update if existing note starts with "未定"
                     if existing_note.startswith("未定"):
                         sheet.update_cell(i + 1, 3, new_value)  # ✅ Update "金額" column (Column C, index 3)
