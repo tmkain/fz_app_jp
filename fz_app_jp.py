@@ -193,10 +193,14 @@ else:
     # Debugging: Print current column names
     st.write("📌 Debugging: Current summary columns before renaming:", summary.columns.tolist())
 
-    # Dynamically adjust columns
+    # 🚀 NEW FIX: Drop any duplicate "金額" columns before renaming
+    summary = summary.loc[:, ~summary.columns.duplicated()]
+
+    # Drop "高速料金" if it exists
     if "高速料金" in summary.columns:
         summary.drop(columns=["高速料金"], inplace=True)
 
+    # Rename 合計金額 to 金額 if necessary
     if "合計金額" in summary.columns:
         summary.rename(columns={"合計金額": "金額"}, inplace=True)
 
