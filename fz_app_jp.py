@@ -168,8 +168,15 @@ else:
     # Rename 合計金額 to 金額
     summary.rename(columns={"合計金額": "金額"}, inplace=True)
 
-    # ✅ Fix: Use pivot_table() instead of pivot() to avoid duplicate index issues
+    # ✅ Fix: Drop duplicate driver entries
+    summary = summary.drop_duplicates(subset=["年-月", "名前"], keep="last")
+
+    # ✅ Fix: Use pivot_table() with unique column names
     pivot_summary = summary.pivot_table(index="年-月", columns="名前", values="金額", aggfunc="sum", fill_value=0).astype(int)
 
+    # ✅ Fix: Ensure unique column names
+    pivot_summary.columns = pivot_summary.columns.map(lambda x: f"{x}_1" if pivot_summary.columns.duplicated().any() else x)
+
     st.write(pivot_summary)
+
 
