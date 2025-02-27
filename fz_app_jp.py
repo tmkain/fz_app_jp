@@ -175,8 +175,9 @@ if df.empty:
 else:
     df["年-月"] = pd.to_datetime(df["日付"]).dt.strftime("%Y-%m")
 
+    # Ensure numerical columns exist and are properly formatted
     df["金額"] = pd.to_numeric(df["金額"], errors="coerce").fillna(0).astype(int)
-    df["高速料金"] = df["高速料金"].replace("未定", 0)  # Convert 未定 to 0 for calculations
+    df["高速料金"] = df["高速料金"].replace("未定", 0)  # Convert "未定" to 0 for calculations
     df["高速料金"] = pd.to_numeric(df["高速料金"], errors="coerce").fillna(0).astype(int)
 
     # Summarize data
@@ -193,27 +194,25 @@ else:
     if "高速料金" in summary.columns:
         summary = summary.drop(columns=["高速料金"])
 
-    # 🚀 NEW FIX: If "合計金額" exists, drop "金額" before renaming
-    if "合計金額" in summary.columns and "金額" in summary.columns:
-        summary = summary.drop(columns=["金額"])  
-
     # Print column names for debugging
     st.write("📌 Debugging: Current summary columns:", summary.columns.tolist())
 
-    # Rename columns dynamically based on count
-    expected_columns = ["年-月", "名前", "金額"]
+    # Ensure proper renaming dynamically
+    expected_columns = ["年-月", "名前", "合計金額"]
     if len(summary.columns) == len(expected_columns):
         summary.columns = expected_columns
     else:
         st.warning(f"⚠️ Column count mismatch! Expected {len(expected_columns)}, but found {len(summary.columns)}. Adjusting dynamically.")
-        summary.rename(columns={"合計金額": "金額"}, inplace=True)  # Rename dynamically if needed
+        if "合計金額" in summary.columns:
+            summary.rename(columns={"合計金額": "金額"}, inplace=True)  # Rename dynamically if needed
 
-    st.write(summary.pivot(index="年-月", columns="名前", values=["金額"]).fillna(""))
+    # Ensure 合計金額 is numeric before pivoting
+    summary["合計金額"] = pd.to_numeric(summary["合計金額"], errors="coerce").fillna(0).astype(int)
 
+    # Ensure all missing values are properly handled
+    summary.fillna(0, inplace=True)
 
+    # 🚀 Correct the column used in pivot (was "金額", now "合計金額")
+    pivot_summary = summary.pivot(index="年-月", columns="名前", values="合計金額").fillna(0).astype(int)
 
-
-
-
-
-
+    st.write(pivot_summary)
