@@ -191,23 +191,35 @@ else:
 
     # ✅ Move input fields BELOW the 更新 button
     if st.button("更新", key="update_pending"):
-        for (index, col), new_value in pending_inputs.items():
-            if new_value.strip():  # If user enters a value
-                all_records = sheet.get_all_values()
-                for i, row in enumerate(all_records):
-                    if i > 0 and row[0] == index and row[1] == col:  # Match "年-月" and "名前"
-                        sheet.update_cell(i + 1, 3, new_value)  # Update 金額 column
-                        sheet.update_cell(i + 1, 5, "")  # ✅ Clear "未定" from 補足 column
+    updated_values = {}
+
+    # ✅ Retrieve latest user inputs
+    for (index, col) in pending_inputs.keys():
+        updated_value = st.session_state.get(f"final_input_{index}_{col}", "").strip()
+        if updated_value:
+            updated_values[(index, col)] = updated_value  # ✅ Store latest values
+
+    if updated_values:  # ✅ Only update if there are changes
+        all_records = sheet.get_all_values()
+
+        for i, row in enumerate(all_records):
+            if i == 0:
+                continue  # ✅ Skip headers
+
+            # ✅ Match "年-月" and "名前" correctly
+            row_date = row[0].strip()  # Ensure no extra spaces
+            row_driver = row[1].strip()
+
+            for (index, col), new_value in updated_values.items():
+                # ✅ Convert index format if needed to match Google Sheets
+                formatted_index = str(index)  # Adjust if date format needs to change
+
+                if row_date == formatted_index and row_driver == col:
+                    sheet.update_cell(i + 1, 3, new_value)  # ✅ Update 金額 column
+                    sheet.update_cell(i + 1, 5, "")  # ✅ Clear "未定" from 補足 column
 
         st.success("✅ 高速料金が更新されました！")
         st.rerun()
-
-    # ✅ Display inputs BELOW the 更新 button
-    st.write("### ⬇️ 未定の高速料金を入力してください:")
-    for index, col, input_field in inputs_section:
-        st.text_input(f"{index} - {col} の高速料金を入力", value=input_field, key=f"final_input_{index}_{col}")
-
-
 
 
 # ==============================
