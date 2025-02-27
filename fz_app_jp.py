@@ -25,6 +25,17 @@ def get_google_sheet():
 
 sheet = get_google_sheet()
 
+def ensure_sheet_headers():
+    # Get all values from the sheet
+    existing_data = sheet.get_all_values()
+
+    # If the sheet is completely empty, add headers
+    if not existing_data or len(existing_data) < 1:
+        headers = [["日付", "名前", "金額", "高速道路", "補足"]]
+        sheet.append_rows(headers, value_input_option="USER_ENTERED")
+
+ensure_sheet_headers()
+
 # ==============================
 # Initialize Session State
 # ==============================
@@ -130,6 +141,28 @@ if st.button("送信", key="submit_button"):
         append_data(new_entries)
         st.success("✅ データが保存されました！")
         st.rerun()
+
+def load_from_sheets():
+    records = sheet.get_all_values()
+    
+    # ✅ If only headers exist or sheet is empty, return an empty DataFrame with correct columns
+    if not records or len(records) < 2:
+        return pd.DataFrame(columns=["日付", "名前", "金額", "高速道路", "補足"])  
+
+    df = pd.DataFrame(records[1:], columns=records[0])
+
+    # ✅ Ensure all expected columns exist
+    required_columns = ["日付", "名前", "金額", "高速道路", "補足"]
+    for col in required_columns:
+        if col not in df.columns:
+            df[col] = ""  # Default missing columns to an empty string
+
+    df["金額"] = pd.to_numeric(df["金額"], errors="coerce").fillna(0).astype(int)
+
+    df["日付"] = pd.to_datetime(df["日付"], errors="coerce").dt.strftime("%Y-%m-%d")
+    
+    return df
+
 
 # ==============================
 # Monthly Summary Section
