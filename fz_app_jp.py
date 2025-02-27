@@ -193,25 +193,24 @@ if st.button("送信", key="submit_button"):
 
 def load_from_sheets():
     records = sheet.get_all_values()
-    
-    # ✅ If only headers exist or sheet is empty, return an empty DataFrame with correct columns
+
+    required_columns = ["日付", "名前", "金額", "高速道路", "補足"]
+
+    # ✅ If the sheet is empty or missing headers, return a DataFrame with correct headers
     if not records or len(records) < 2:
-        return pd.DataFrame(columns=["日付", "名前", "金額", "高速道路", "補足"])  
+        return pd.DataFrame(columns=required_columns)
 
     df = pd.DataFrame(records[1:], columns=records[0])
 
-    # ✅ Ensure all expected columns exist
-    required_columns = ["日付", "名前", "金額", "高速道路", "補足"]
+    # ✅ Ensure all required columns exist
     for col in required_columns:
         if col not in df.columns:
             df[col] = ""  # Default missing columns to an empty string
 
     df["金額"] = pd.to_numeric(df["金額"], errors="coerce").fillna(0).astype(int)
-
     df["日付"] = pd.to_datetime(df["日付"], errors="coerce").dt.strftime("%Y-%m-%d")
-    
-    return df
 
+    return df
 
 # ==============================
 # Monthly Summary Section
@@ -229,8 +228,11 @@ else:
     df["年-月"] = pd.to_datetime(df["日付"]).dt.strftime("%Y-%m")
     df["金額"] = pd.to_numeric(df["金額"], errors="coerce").fillna(0).astype(int)
 
-    # ✅ Detect where "未定" exists
-    df["未定フラグ"] = df["補足"].apply(lambda x: True if "未定" in str(x) else False)
+    # ✅ Check if "補足" exists before trying to use it
+    if "補足" in df.columns:
+        df["未定フラグ"] = df["補足"].apply(lambda x: True if "未定" in str(x) else False)
+    else:
+        df["未定フラグ"] = False  # Default to False if "補足" column is missing
 
     # ✅ Create a summary table
     pivot_summary = df.pivot_table(index="年-月", columns="名前", values="金額", aggfunc="sum", fill_value=0)
@@ -243,20 +245,15 @@ else:
 
     # ✅ Convert the DataFrame to HTML with formatted cells
     styled_df = pivot_summary.copy()
-    pending_inputs = {}  # Dictionary to store editable input fields
-
     for col in styled_df.columns:
         for index, value in styled_df[col].items():
             is_pending = df[(df["年-月"] == index) & (df["名前"] == col)]["未定フラグ"].any()
             styled_df.at[index, col] = format_cell(value, is_pending)
 
-            # ✅ Add an input field below for updating "未定" values
-            if is_pending:
-                pending_inputs[(index, col)] = st.text_input(f"{index} - {col} の高速料金を入力", "")
-
     # ✅ Convert to HTML & Render with Markdown
     styled_html = styled_df.to_html(escape=False)  # escape=False allows HTML formatting
     st.markdown(styled_html, unsafe_allow_html=True)
+
 
     # ==============================
     # ✅ Process User Input for "未定" Fields
