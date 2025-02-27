@@ -216,33 +216,34 @@ else:
                 updated_values[(index, col)] = updated_value  # ✅ Add to update list
 
     # ✅ Update Google Sheets when "更新" button is clicked
-    if st.button("更新", key="update_pending"):
-        if updated_values:  # ✅ Only proceed if there are actual changes
-            all_records = sheet.get_all_values()
+if st.button("更新", key="update_pending"):
+    if updated_values:  # ✅ Only proceed if there are actual changes
+        all_records = sheet.get_all_values()
 
-            for i, row in enumerate(all_records):
-                if i == 0:
-                    continue  # ✅ Skip headers
-                
-                row_date = row[0].strip()
-                row_driver = row[1].strip()
-                existing_amount = row[2].strip()
-                existing_note = row[4].strip()  # "補足" column (which contains "未定")
+        for i, row in enumerate(all_records):
+            if i == 0:
+                continue  # ✅ Skip headers
+            
+            row_date = row[0].strip()
+            row_driver = row[1].strip()
+            existing_amount = row[2].strip()
+            existing_note = row[4].strip()  # "補足" column (which contains "未定*")
 
-                for (index, col), new_value in updated_values.items():
-                    formatted_index = str(index)  # Ensure consistent date formatting
+            for (index, col), new_value in updated_values.items():
+                formatted_index = str(index)  # Ensure consistent date formatting
 
-                    # ✅ Match both the date and driver name
-                    if row_date == formatted_index and row_driver == col:
-                        # ✅ Only update if existing value is "未定"
-                        if existing_note == "未定":
-                            sheet.update_cell(i + 1, 3, new_value)  # ✅ Update 金額 column
-                            sheet.update_cell(i + 1, 5, "")  # ✅ Clear "未定" from 補足 column
+                # ✅ Match both the date and driver name
+                if row_date == formatted_index and row_driver == col:
+                    # ✅ Update if existing note starts with "未定" (allows for "未定*")
+                    if existing_note.startswith("未定"):
+                        sheet.update_cell(i + 1, 3, new_value)  # ✅ Update 金額 column
+                        sheet.update_cell(i + 1, 5, "")  # ✅ Clear "補足" column
 
-            st.success("✅ 高速料金が更新されました！")
+        st.success("✅ 高速料金が更新されました！")
 
-            # ✅ Force Streamlit to reload the updated data
-            st.rerun()
+        # ✅ Ensure Google Sheets updates before rerunning
+        time.sleep(1)
+        st.rerun()
 
 # ==============================
 # ✅ Logout & Reset Button (Moved to the bottom)
