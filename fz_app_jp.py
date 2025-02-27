@@ -282,20 +282,14 @@ if st.button("更新", key="update_pending"):
             if i == 0:
                 continue  # ✅ Skip headers
 
-            # ✅ Check row structure before accessing indices
-            if len(row) < 5:
-                st.write(f"⚠️ Debugging: Row {i} is incomplete and skipped:", row)
-                continue
+            # ✅ Extract and clean up data from the row
+            row_date_clean = "".join(pd.to_datetime(row[0], errors="coerce").strftime("%Y-%m").split())  # Convert Google Sheets date to YYYY-MM
+            row_driver_clean = "".join(row[1].strip().split())  # ✅ Extract and clean driver name
+            formatted_index_clean = "".join(pd.to_datetime(index, errors="coerce").strftime("%Y-%m").split())  # Ensure comparison is YYYY-MM
+            col_clean = "".join(col.strip().split())  # Clean the column name (driver name)
 
-            # ✅ Clean up all spaces in Google Sheets data before comparison
-            row_date_clean = "".join(pd.to_datetime(row[0], errors="coerce").strftime("%Y-%m").split())  # ✅ Convert Google Sheets date to YYYY-MM
-            formatted_index_clean = "".join(pd.to_datetime(index, errors="coerce").strftime("%Y-%m").split())  # ✅ Ensure comparison is YYYY-MM
-
-            for (index, col), new_value in updated_values.items():
-                formatted_index_clean = "".join(pd.to_datetime(index, errors="coerce").strftime("%Y-%m").split())  # ✅ Use only "YYYY-MM"
-                col_clean = "".join(col.strip().split())
-
-                st.write(f"🔍 Debugging: Checking row {i} | Date: {row_date_clean} vs {formatted_index_clean} | Name: {row_driver_clean} vs {col_clean}")
+            # ✅ Debugging Output (AFTER defining row_driver_clean!)
+            st.write(f"🔍 Debugging: Checking row {i} | Date: {row_date_clean} vs {formatted_index_clean} | Name: {row_driver_clean} vs {col_clean}")
 
                 # ✅ Compare cleaned values
                 if row_date_clean == formatted_index_clean and row_driver_clean == col_clean:
