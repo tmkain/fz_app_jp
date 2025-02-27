@@ -273,7 +273,7 @@ if st.button("\u66f4\u65b0", key="update_pending"):
     if len(updated_values) > 0:  # ✅ Ensure `updated_values` exists before proceeding
         # ✅ Convert tuple keys to strings for debugging
         debug_updated_values = {f"{index}-{col}": value for (index, col), value in updated_values.items()}
-        st.write("\ud83d\udccc Debugging: Current updated_values (Converted for JSON):", debug_updated_values)
+        st.write("📌 Debugging: Current updated_values (Converted for JSON):", debug_updated_values)
 
         all_records = sheet.get_all_values()
         st.write("\ud83d\udccc Debugging: Retrieved all records from Google Sheets:", all_records[:5])  # Show first 5 rows for safety
