@@ -270,12 +270,20 @@ for (index, col), user_input in pending_inputs.items():
 
 # ✅ Update Google Sheets when "更新" button is clicked
 if st.button("更新", key="update_pending"):
-    if updated_values:  # ✅ Only proceed if there are actual changes
+    if len(updated_values) > 0:  # ✅ Ensure `updated_values` exists before proceeding
+        st.write("📌 Debugging: Current updated_values:", updated_values)
+
         all_records = sheet.get_all_values()
+        st.write("📌 Debugging: Retrieved all records from Google Sheets:", all_records[:5])  # Show first 5 rows for safety
 
         for i, row in enumerate(all_records):
             if i == 0:
                 continue  # ✅ Skip headers
+
+            # ✅ Check row structure before accessing indices
+            if len(row) < 5:
+                st.write(f"⚠️ Debugging: Row {i} is incomplete and skipped:", row)
+                continue
 
             # ✅ Clean up all spaces in Google Sheets data before comparison
             row_date_clean = "".join(row[0].strip().split())  # "日付" column
@@ -285,20 +293,26 @@ if st.button("更新", key="update_pending"):
             col_clean = "".join(col.strip().split())
 
             for (index, col), new_value in updated_values.items():
+                st.write(f"🔍 Debugging: Checking row {i} | Date: {row_date_clean} vs {formatted_index_clean} | Name: {row_driver_clean} vs {col_clean}")
+
                 # ✅ Compare cleaned values
                 if row_date_clean == formatted_index_clean and row_driver_clean == col_clean:
+                    st.write(f"✅ Debugging: Match found for row {i}, updating 金額 → {new_value}")
+
                     # ✅ Update if existing note starts with "未定"
                     existing_note = row[4].strip()  # "補足" column
+                    st.write(f"🔍 Debugging: Existing 補足 value in row {i}:", existing_note)
+
                     if existing_note.startswith("未定"):
                         sheet.update_cell(i + 1, 3, new_value)  # ✅ Update "金額" column (Column C)
                         sheet.update_cell(i + 1, 5, "")  # ✅ Clear "補足" column (Column E)
+                        st.write(f"✅ Debugging: Updated row {i} with {new_value} and cleared 補足.")
 
         st.success("✅ 高速料金が更新されました！")
-
-        # ✅ Ensure Google Sheets updates before rerunning
-        time.sleep(2)
-        df = pd.DataFrame(sheet.get_all_records())  # Force refresh
         st.rerun()
+    else:
+        st.warning("🚨 変更された値がありません。更新するには値を入力してください。")
+
 
 
 # ==============================
