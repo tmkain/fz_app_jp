@@ -216,6 +216,9 @@ def load_from_sheets():
 # ==============================
 # Monthly Summary Section
 # ==============================
+# ==============================
+# Monthly Summary Section
+# ==============================
 st.header("📊 月ごとの集計")
 
 df = pd.DataFrame(sheet.get_all_records())
@@ -226,9 +229,51 @@ else:
     df["年-月"] = pd.to_datetime(df["日付"]).dt.strftime("%Y-%m")
     df["金額"] = pd.to_numeric(df["金額"], errors="coerce").fillna(0).astype(int)
 
-    pivot_summary = df.pivot_table(index="年-月", columns="名前", values="金額", aggfunc="sum", fill_value=0).astype(int)
+    # ✅ Detect where "未定" exists
+    df["未定フラグ"] = df["補足"].apply(lambda x: True if "未定" in str(x) else False)
 
-    st.write(pivot_summary)
+    # ✅ Create a summary table
+    pivot_summary = df.pivot_table(index="年-月", columns="名前", values="金額", aggfunc="sum", fill_value=0)
+
+    # ✅ Apply formatting for "未定" cells
+    def format_cell(value, is_pending):
+        if is_pending:
+            return f"<b>{value}</b>"  # Bold formatting
+        return f"{value}"  # Regular formatting
+
+    # ✅ Convert the DataFrame to HTML with formatted cells
+    styled_df = pivot_summary.copy()
+    pending_inputs = {}  # Dictionary to store editable input fields
+
+    for col in styled_df.columns:
+        for index, value in styled_df[col].items():
+            is_pending = df[(df["年-月"] == index) & (df["名前"] == col)]["未定フラグ"].any()
+            styled_df.at[index, col] = format_cell(value, is_pending)
+
+            # ✅ Add an input field below for updating "未定" values
+            if is_pending:
+                pending_inputs[(index, col)] = st.text_input(f"{index} - {col} の高速料金を入力", "")
+
+    # ✅ Convert to HTML & Render with Markdown
+    styled_html = styled_df.to_html(escape=False)  # escape=False allows HTML formatting
+    st.markdown(styled_html, unsafe_allow_html=True)
+
+    # ==============================
+    # ✅ Process User Input for "未定" Fields
+    # ==============================
+    if st.button("更新", key="update_pending"):
+        for (index, col), new_value in pending_inputs.items():
+            if new_value.strip():  # If the user entered a value
+                # ✅ Find and update the Google Sheet entry
+                all_records = sheet.get_all_values()
+                for i, row in enumerate(all_records):
+                    if i > 0 and row[0] == index and row[1] == col:  # Match "年-月" and "名前"
+                        sheet.update_cell(i + 1, 3, new_value)  # Update 金額 column
+                        sheet.update_cell(i + 1, 5, "")  # Clear "未定" in 補足 column
+
+        st.success("✅ 高速料金が更新されました！")
+        st.rerun()
+
 
 # ==============================
 # ✅ Logout & Reset Button (Moved to the bottom)
