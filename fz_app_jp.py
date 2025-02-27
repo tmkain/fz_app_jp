@@ -226,13 +226,18 @@ else:
                 
                 row_date = row[0].strip()
                 row_driver = row[1].strip()
+                existing_amount = row[2].strip()
+                existing_note = row[4].strip()  # "補足" column (which contains "未定")
 
                 for (index, col), new_value in updated_values.items():
                     formatted_index = str(index)  # Ensure consistent date formatting
 
+                    # ✅ Match both the date and driver name
                     if row_date == formatted_index and row_driver == col:
-                        sheet.update_cell(i + 1, 3, new_value)  # ✅ Update 金額 column
-                        sheet.update_cell(i + 1, 5, "")  # ✅ Clear "未定" from 補足 column
+                        # ✅ Only update if existing value is "未定"
+                        if existing_note == "未定":
+                            sheet.update_cell(i + 1, 3, new_value)  # ✅ Update 金額 column
+                            sheet.update_cell(i + 1, 5, "")  # ✅ Clear "未定" from 補足 column
 
             st.success("✅ 高速料金が更新されました！")
 
