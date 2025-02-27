@@ -35,18 +35,12 @@ def load_from_sheets():
 
     df = pd.DataFrame(records[1:], columns=records[0])
 
-    # Ensure numerical columns exist before converting
     df["金額"] = pd.to_numeric(df["金額"], errors="coerce").fillna(0).astype(int)
-
-    if "高速料金" in df.columns:
-        df["高速料金"] = pd.to_numeric(df["高速料金"], errors="coerce").fillna(0).astype(int)
-    else:
-        df["高速料金"] = 0  # Default to 0 if the column doesn't exist
-
+    df["高速料金"] = df["高速料金"].replace("未定", 0)  
+    df["高速料金"] = pd.to_numeric(df["高速料金"], errors="coerce").fillna(0).astype(int)
     df["日付"] = pd.to_datetime(df["日付"], errors="coerce").dt.strftime("%Y-%m-%d")
     
     return df
-
 
 # ==============================
 # Initialize Session State
@@ -96,26 +90,14 @@ if st.button("運転手を確定する"):
 if st.session_state.confirmed_drivers:
     st.session_state.amount = st.radio("金額を選択してください", [200, 400, 600, 800, 1000, 1200], key="amount_selection")
 
-    # Show checkboxes for each driver and input fields for toll costs
     for driver in st.session_state.selected_drivers:
-        if driver not in st.session_state.one_way:
-            st.session_state.one_way[driver] = False
-        if driver not in st.session_state.toll_round_trip:
-            st.session_state.toll_round_trip[driver] = False
-        if driver not in st.session_state.toll_one_way:
-            st.session_state.toll_one_way[driver] = False
-        if driver not in st.session_state.toll_cost:
-            st.session_state.toll_cost[driver] = "未定"  # Default to "未定"
+        st.session_state.one_way[driver] = st.checkbox(f"{driver} の一般道路片道", value=st.session_state.one_way.get(driver, False), key=f"one_way_{driver}_chk")
+        st.session_state.toll_round_trip[driver] = st.checkbox(f"{driver} の高速道路往復", value=st.session_state.toll_round_trip.get(driver, False), key=f"toll_round_trip_{driver}_chk")
+        st.session_state.toll_one_way[driver] = st.checkbox(f"{driver} の高速道路片道", value=st.session_state.toll_one_way.get(driver, False), key=f"toll_one_way_{driver}_chk")
 
-        st.session_state.one_way[driver] = st.checkbox(f"{driver} の一般道路片道", value=st.session_state.one_way[driver], key=f"one_way_{driver}_chk")
-        st.session_state.toll_round_trip[driver] = st.checkbox(f"{driver} の高速道路往復", value=st.session_state.toll_round_trip[driver], key=f"toll_round_trip_{driver}_chk")
-        st.session_state.toll_one_way[driver] = st.checkbox(f"{driver} の高速道路片道", value=st.session_state.toll_one_way[driver], key=f"toll_one_way_{driver}_chk")
-
-        # Show input field for toll cost if either toll option is selected
         if st.session_state.toll_round_trip[driver] or st.session_state.toll_one_way[driver]:
-            st.session_state.toll_cost[driver] = st.text_input(f"{driver} の高速料金（円）", value=st.session_state.toll_cost[driver], key=f"toll_cost_{driver}_input")
+            st.session_state.toll_cost[driver] = st.text_input(f"{driver} の高速料金（円）", value=st.session_state.toll_cost.get(driver, "未定"), key=f"toll_cost_{driver}_input")
 
-    # クリアボタン: Reset the form
     if st.button("クリア"):
         st.session_state.date = datetime.today()
         st.session_state.selected_drivers.clear()
@@ -127,39 +109,27 @@ if st.session_state.confirmed_drivers:
         st.session_state.toll_cost.clear()
         st.rerun()
 
-    if st.button("送信"):  
+    if st.button("送信", key="submit_button"):  
         if st.session_state.selected_drivers:
-            batch_id = int(time.time())
             game_date = st.session_state.date.strftime("%Y-%m-%d")
 
             new_entries = []
             for driver in st.session_state.selected_drivers:
-                # Convert toll cost if it's a number, otherwise keep "未定"
                 toll_cost = st.session_state.toll_cost.get(driver, "未定")
                 toll_cost_numeric = pd.to_numeric(toll_cost, errors="coerce")
                 toll_cost = int(toll_cost_numeric) if not pd.isna(toll_cost_numeric) else "未定"
 
-                # Calculate amount based on toll road settings
                 amount = st.session_state.amount
                 if st.session_state.one_way.get(driver, False):  
                     amount /= 2  
                 if st.session_state.toll_round_trip.get(driver, False):  
-                    amount = toll_cost  # Ignore base amount, only reimburse toll
+                    amount = toll_cost  
                 elif st.session_state.toll_one_way.get(driver, False):  
-                    amount = (st.session_state.amount / 2) + (toll_cost if toll_cost != "未定" else 0)  # Half base amount + full toll
+                    amount = (st.session_state.amount / 2) + (toll_cost if toll_cost != "未定" else 0)  
 
-                new_entries.append([
-                    game_date,  
-                    driver,  
-                    int(amount) if toll_cost != "未定" else "未定",  
-                    "あり" if st.session_state.toll_round_trip.get(driver, False) or st.session_state.toll_one_way.get(driver, False) else "なし",
-                    toll_cost,
-                    "あり" if st.session_state.one_way.get(driver, False) else "なし",
-                    batch_id
-                ])
+                new_entries.append([game_date, driver, int(amount) if toll_cost != "未定" else "未定", "あり" if st.session_state.toll_round_trip.get(driver, False) or st.session_state.toll_one_way.get(driver, False) else "なし", toll_cost, "あり" if st.session_state.one_way.get(driver, False) else "なし"])
 
-            save_to_sheets(new_entries)
-
+            sheet.append_rows(new_entries, value_input_option="USER_ENTERED")
             st.success("✅ データが保存されました！")
             st.rerun()
 
@@ -167,91 +137,10 @@ if st.session_state.confirmed_drivers:
 # Monthly Summary Section
 # ==============================
 st.header("📊 月ごとの集計")
-
-df = load_from_sheets()  # Reload data every time
-
+df = load_from_sheets()
 if df.empty:
     st.warning("データがありません。")
 else:
     df["年-月"] = pd.to_datetime(df["日付"]).dt.strftime("%Y-%m")
-
-    # Ensure numerical columns exist and are properly formatted
-    df["金額"] = pd.to_numeric(df["金額"], errors="coerce").fillna(0).astype(int)
-    df["高速料金"] = df["高速料金"].replace("未定", 0)  # Convert "未定" to 0 for calculations
-    df["高速料金"] = pd.to_numeric(df["高速料金"], errors="coerce").fillna(0).astype(int)
-
-    # Summarize data dynamically
-    summary = df.groupby(["年-月", "名前"], as_index=False).agg({"金額": "sum", "高速料金": "sum"})
-
-    # Ensure numerical values before adding
-    summary["金額"] = summary["金額"].astype(int)
-    summary["高速料金"] = summary["高速料金"].astype(int)
-
-    # Compute final total dynamically
-    summary["合計金額"] = summary["金額"] + summary["高速料金"]
-
-    # Debugging: Print current column names
-    st.write("📌 Debugging: Current summary columns before renaming:", summary.columns.tolist())
-
-    # 🚀 NEW FIX: Drop any duplicate columns before renaming
-    summary = summary.loc[:, ~summary.columns.duplicated()]
-
-    # Drop "高速料金" if it exists
-    if "高速料金" in summary.columns:
-        summary.drop(columns=["高速料金"], inplace=True)
-
-    # 🚀 NEW FIX: Drop existing "金額" column before renaming if both exist
-    if "合計金額" in summary.columns and "金額" in summary.columns:
-        summary.drop(columns=["金額"], inplace=True)
-
-    # Rename 合計金額 to 金額
-    summary.rename(columns={"合計金額": "金額"}, inplace=True)
-
-    # Debugging: Print updated column names
-    st.write("📌 Debugging: Columns after adjustments:", summary.columns.tolist())
-
-    # Ensure 金額 is numeric before pivoting
-    summary["金額"] = pd.to_numeric(summary["金額"], errors="coerce").fillna(0).astype(int)
-
-    # Ensure all missing values are properly handled
-    summary.fillna(0, inplace=True)
-
-    # 🚀 Correct the column used in pivot dynamically
-    pivot_summary = summary.pivot(index="年-月", columns="名前", values="金額").fillna(0).astype(int)
-
+    pivot_summary = df.pivot(index="年-月", columns="名前", values="金額").fillna(0).astype(int)
     st.write(pivot_summary)
-
-
-# ==============================
-# ✅ Define `save_to_sheets` (Fix for "NameError")
-# ==============================
-def save_to_sheets(entries):
-    sheet.append_rows(entries, value_input_option="USER_ENTERED")
-
-if st.session_state.confirmed_drivers:
-    if st.button("送信"):  
-        if st.session_state.selected_drivers:
-            game_date = st.session_state.date.strftime("%Y-%m-%d")
-
-            new_entries = []
-            for driver in st.session_state.selected_drivers:
-                amount = st.session_state.amount + st.session_state.toll_cost.get(driver, 0)
-                if st.session_state.one_way.get(driver, False):  
-                    amount /= 2  
-                if st.session_state.toll_round_trip.get(driver, False):  
-                    amount = st.session_state.toll_cost.get(driver, 0)  # Ignore base amount, only reimburse toll
-                elif st.session_state.toll_one_way.get(driver, False):  
-                    amount = (st.session_state.amount / 2) + st.session_state.toll_cost.get(driver, 0)  # Half base amount + full toll
-
-                new_entries.append([
-                    game_date,  
-                    driver,  
-                    int(amount),  
-                    "あり" if st.session_state.toll_round_trip.get(driver, False) or st.session_state.toll_one_way.get(driver, False) else "なし",
-                    st.session_state.toll_cost.get(driver, 0),
-                    "あり" if st.session_state.one_way.get(driver, False) else "なし"
-                ])
-
-            save_to_sheets(new_entries)
-            st.success("✅ データが保存されました！")
-            st.rerun()
