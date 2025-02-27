@@ -292,7 +292,7 @@ if st.button("更新", key="update_pending"):
             row_driver_clean = "".join(row[1].strip().split())  # "名前" column
 
             for (index, col), new_value in updated_values.items():
-                formatted_index_clean = "".join(pd.to_datetime(index, errors="coerce").strftime("%Y-%m-%d").split())
+                formatted_index_clean = "".join(pd.to_datetime(index, errors="coerce").strftime("%Y-%m").split())  # ✅ Use only "YYYY-MM"
                 col_clean = "".join(col.strip().split())
 
                 st.write(f"🔍 Debugging: Checking row {i} | Date: {row_date_clean} vs {formatted_index_clean} | Name: {row_driver_clean} vs {col_clean}")
