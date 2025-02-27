@@ -216,9 +216,9 @@ else:
     df["年-月"] = pd.to_datetime(df["日付"]).dt.strftime("%Y-%m")
     df["金額"] = pd.to_numeric(df["金額"], errors="coerce").fillna(0).astype(int)
 
-    # ✅ Check if "補足" exists before trying to use it
+    # ✅ Ensure "補足" column exists before checking for "未定"
     if "補足" in df.columns:
-        df["未定フラグ"] = df["補足"].apply(lambda x: True if "未定" in str(x) else False)
+        df["未定フラグ"] = df["補足"].apply(lambda x: "未定" in str(x))
     else:
         df["未定フラグ"] = False  # Default to False if "補足" column is missing
 
@@ -237,8 +237,10 @@ else:
 
     for col in styled_df.columns:
         for index, value in styled_df[col].items():
-            # ✅ Check if the cell corresponds to a "未定" entry
-            is_pending = df[(df["年-月"] == index) & (df["名前"] == col)]["未定フラグ"].any()
+            # ✅ Correctly filter df to check if "未定" exists for that driver and month
+            filtered_df = df[(df["年-月"] == index) & (df["名前"] == col)]
+            is_pending = filtered_df["未定フラグ"].any() if not filtered_df.empty else False
+
             styled_df.at[index, col] = format_cell(value, is_pending)
 
             # ✅ Add an input field for "未定" updates
