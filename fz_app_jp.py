@@ -168,7 +168,7 @@ if st.session_state.confirmed_drivers:
 # ==============================
 st.header("📊 月ごとの集計")
 
-df = load_from_sheets()
+df = load_from_sheets()  # Reload data every time
 
 if df.empty:
     st.warning("データがありません。")
@@ -189,14 +189,22 @@ else:
     # Compute final total
     summary["合計金額"] = summary["金額"] + summary["高速料金"]
 
-    # Add asterisk for 未定 tolls
-    summary["合計金額"] = summary.apply(lambda row: f"{row['合計金額']}*" if "未定" in df["高速料金"].values else row["合計金額"], axis=1)
+    # Drop unnecessary columns dynamically
+    if "高速料金" in summary.columns:
+        summary = summary.drop(columns=["高速料金"])
 
-    # Drop unnecessary columns and rename
-    summary = summary.drop(columns=["高速料金"])
-    summary.columns = ["年-月", "名前", "金額"]
+    # Print column names for debugging
+    st.write("📌 Debugging: Current summary columns:", summary.columns.tolist())
+
+    # Rename columns dynamically based on count
+    expected_columns = ["年-月", "名前", "金額"]
+    if len(summary.columns) == len(expected_columns):
+        summary.columns = expected_columns
+    else:
+        st.warning(f"⚠️ Column count mismatch! Expected {len(expected_columns)}, but found {len(summary.columns)}. Skipping renaming.")
 
     st.write(summary.pivot(index="年-月", columns="名前", values=["金額"]).fillna(""))
+
 
 
 
