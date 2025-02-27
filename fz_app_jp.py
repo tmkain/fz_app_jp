@@ -157,21 +157,31 @@ else:
     # Summarize data
     summary = df.groupby(["年-月", "名前"], as_index=False).agg({"金額": "sum", "高速料金": "sum"})
 
-    # Ensure 金額 and 高速料金 are integers before adding
+    # Print columns to debug the error
+    st.write("📌 Debugging: Current summary columns:", summary.columns.tolist())
+
+    # Ensure numerical values before adding
     summary["金額"] = summary["金額"].astype(int)
     summary["高速料金"] = summary["高速料金"].astype(int)
 
     # Compute final total
     summary["合計金額"] = summary["金額"] + summary["高速料金"]
 
-    # Format 金額 column by adding * for toll road users **after calculations**
-    summary["金額"] = summary.apply(lambda row: f"{row['金額']}*" if row["高速料金"] > 0 else str(row["金額"]), axis=1)
-
     # Drop unnecessary columns and rename
     summary = summary.drop(columns=["高速料金"])
-    summary.columns = ["年-月", "名前", "金額"]
+
+    # Print columns again after dropping
+    st.write("📌 Debugging: After dropping columns, summary columns:", summary.columns.tolist())
+
+    # Rename columns dynamically based on the actual number of columns
+    expected_columns = ["年-月", "名前", "金額"]
+    if len(summary.columns) == len(expected_columns):
+        summary.columns = expected_columns
+    else:
+        st.warning(f"⚠️ Column count mismatch! Expected {len(expected_columns)}, but found {len(summary.columns)}")
 
     st.write(summary.pivot(index="年-月", columns="名前", values=["金額"]).fillna(""))
+
 
 
 
