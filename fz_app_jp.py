@@ -228,10 +228,6 @@ else:
     # ✅ Define `pending_inputs` BEFORE using it
     pending_inputs = {}
 
-    # ✅ Define a function to apply formatting for "未定" cells
-    def format_cell(value, is_pending):
-        return f"<b>{value}</b>" if is_pending else f"{value}"  # Bold formatting if "未定"
-
     # ✅ Copy pivot table and convert to strings to allow formatting
     styled_df = pivot_summary.astype(str)
 
@@ -241,7 +237,10 @@ else:
             filtered_df = df[(df["年-月"] == index) & (df["名前"] == col)]
             is_pending = filtered_df["未定フラグ"].any() if not filtered_df.empty else False
 
-            # ✅ Store formatted values in the table
+            # ✅ Apply formatting for "未定" cells **after** determining is_pending
+            def format_cell(value, is_pending):
+                return f"<b>{value}</b>" if is_pending else f"{value}"  # Bold formatting if "未定"
+
             styled_df.at[index, col] = format_cell(value, is_pending)
 
             # ✅ Add an input field for "未定" updates
@@ -264,6 +263,7 @@ else:
 
         st.success("✅ 高速料金が更新されました！")
         st.rerun()
+
 
 
 # ==============================
