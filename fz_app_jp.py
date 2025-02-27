@@ -251,10 +251,19 @@ else:
                 pending_inputs[(index, col)] = st.text_input(f"{index} - {col} の高速料金を入力", "")
 
     # ✅ Convert to HTML & Render with Markdown
-    styled_html = styled_df.to_html(escape=False)
-    st.markdown(styled_html, unsafe_allow_html=True)
+styled_html = styled_df.to_html(escape=False)
+st.markdown(styled_html, unsafe_allow_html=True)
 
-    # ✅ Collect user inputs BEFORE the button check
+# ✅ Normalize user input keys by removing ALL spaces
+cleaned_pending_inputs = {
+    ("".join(index.split()), "".join(col.split())): value.strip()
+    for (index, col), value in pending_inputs.items()
+}
+
+# ✅ Replace pending_inputs with the cleaned version
+pending_inputs = cleaned_pending_inputs
+
+# ✅ Collect user inputs BEFORE the button check
 for (index, col), user_input in pending_inputs.items():
     if user_input.strip():  # Only store non-empty inputs
         updated_values[(index, col)] = user_input.strip()
@@ -268,31 +277,21 @@ if st.button("更新", key="update_pending"):
             if i == 0:
                 continue  # ✅ Skip headers
 
-            row_date = row[0].strip()  # "日付" column from Google Sheets
-            row_driver = row[1].strip()  # "名前" column from Google Sheets
-            existing_amount = row[2].strip()  # "金額" column (to be updated)
-            existing_note = row[4].strip()  # "補足" column (may contain "未定*")
+            # ✅ Clean up all spaces in Google Sheets data before comparison
+            row_date_clean = "".join(row[0].strip().split())  # "日付" column
+            formatted_index_clean = "".join(pd.to_datetime(index, errors="coerce").strftime("%Y-%m-%d").split())
+
+            row_driver_clean = "".join(row[1].strip().split())  # "名前" column
+            col_clean = "".join(col.strip().split())
 
             for (index, col), new_value in updated_values.items():
-                formatted_index = pd.to_datetime(index, errors="coerce").strftime("%Y-%m-%d")  # ✅ Ensure date format matches Google Sheets
-
-                # ✅ Debugging - Print comparisons to find mismatches
-                st.write(f"Comparing: row_date={row_date}, formatted_index={formatted_index}, row_driver={row_driver}, col={col}")
-
-                # ✅ Clean up all spaces before comparison
-                row_date_clean = "".join(row_date.split())  
-                formatted_index_clean = "".join(formatted_index.split())
-
-                row_driver_clean = "".join(row_driver.split())  
-                col_clean = "".join(col.split())
-
                 # ✅ Compare cleaned values
                 if row_date_clean == formatted_index_clean and row_driver_clean == col_clean:
-
                     # ✅ Update if existing note starts with "未定"
+                    existing_note = row[4].strip()  # "補足" column
                     if existing_note.startswith("未定"):
-                        sheet.update_cell(i + 1, 3, new_value)  # ✅ Update "金額" column (Column C, index 3)
-                        sheet.update_cell(i + 1, 5, "")  # ✅ Clear "補足" column (Column E, index 5)
+                        sheet.update_cell(i + 1, 3, new_value)  # ✅ Update "金額" column (Column C)
+                        sheet.update_cell(i + 1, 5, "")  # ✅ Clear "補足" column (Column E)
 
         st.success("✅ 高速料金が更新されました！")
 
@@ -300,7 +299,6 @@ if st.button("更新", key="update_pending"):
         time.sleep(2)
         df = pd.DataFrame(sheet.get_all_records())  # Force refresh
         st.rerun()
-
 
 
 # ==============================
