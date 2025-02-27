@@ -191,7 +191,7 @@ else:
 
     # ✅ Move input fields BELOW the 更新 button
     if st.button("更新", key="update_pending"):
-    updated_values = {}
+        updated_values = {}
 
     # ✅ Retrieve latest user inputs
     for (index, col) in pending_inputs.keys():
