@@ -291,22 +291,22 @@ if st.button("更新", key="update_pending"):
             # ✅ Debugging Output (AFTER defining row_driver_clean!)
             st.write(f"🔍 Debugging: Checking row {i} | Date: {row_date_clean} vs {formatted_index_clean} | Name: {row_driver_clean} vs {col_clean}")
 
-                # ✅ Compare cleaned values
-                if row_date_clean == formatted_index_clean and row_driver_clean == col_clean:
-                    st.write(f"✅ Debugging: Match found for row {i}, updating 金額 → {new_value}")
+            # ✅ Compare cleaned values
+            if row_date_clean == formatted_index_clean and row_driver_clean == col_clean:
+                st.write(f"✅ Debugging: Match found for row {i}, updating 金額 → {new_value}")
 
-                    # ✅ Update if existing note starts with "未定"
-                    existing_note = row[4].strip()  # "補足" column
-                    st.write(f"🔍 Debugging: Existing 補足 value in row {i}:", existing_note)
+                # ✅ Update if existing note starts with "未定"
+                existing_note = row[4].strip()  # "補足" column
+                st.write(f"🔍 Debugging: Existing 補足 value in row {i}:", existing_note)
 
-                    if existing_note.startswith("未定"):
-                        sheet.update_cell(i + 1, 3, new_value)  # ✅ Update "金額" column (Column C)
-                        sheet.update_cell(i + 1, 5, "")  # ✅ Clear "補足" column (Column E)
-                        st.write(f"✅ Debugging: Updated row {i} with {new_value} and cleared 補足.")
+                if existing_note.startswith("未定"):
+                    sheet.update_cell(i + 1, 3, new_value)  # ✅ Update "金額" column (Column C)
+                    sheet.update_cell(i + 1, 5, "")  # ✅ Clear "補足" column (Column E)
+                    st.write(f"✅ Debugging: Updated row {i} with {new_value} and cleared 補足.")
 
-        st.success("✅ 高速料金が更新されました！")
-    else:
-        st.warning("🚨 変更された値がありません。更新するには値を入力してください。")
+    st.success("✅ 高速料金が更新されました！")
+else:
+    st.warning("🚨 変更された値がありません。更新するには値を入力してください。")
 
 
 
