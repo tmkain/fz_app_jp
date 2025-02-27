@@ -193,6 +193,10 @@ else:
     if "高速料金" in summary.columns:
         summary = summary.drop(columns=["高速料金"])
 
+    # 🚀 NEW FIX: If "合計金額" exists, drop "金額" before renaming
+    if "合計金額" in summary.columns and "金額" in summary.columns:
+        summary = summary.drop(columns=["金額"])  
+
     # Print column names for debugging
     st.write("📌 Debugging: Current summary columns:", summary.columns.tolist())
 
@@ -201,9 +205,11 @@ else:
     if len(summary.columns) == len(expected_columns):
         summary.columns = expected_columns
     else:
-        st.warning(f"⚠️ Column count mismatch! Expected {len(expected_columns)}, but found {len(summary.columns)}. Skipping renaming.")
+        st.warning(f"⚠️ Column count mismatch! Expected {len(expected_columns)}, but found {len(summary.columns)}. Adjusting dynamically.")
+        summary.rename(columns={"合計金額": "金額"}, inplace=True)  # Rename dynamically if needed
 
     st.write(summary.pivot(index="年-月", columns="名前", values=["金額"]).fillna(""))
+
 
 
 
