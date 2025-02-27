@@ -137,73 +137,6 @@ if st.button("クリア"):
     st.rerun()
 
 # ==============================
-# Save Data to Google Sheets
-# ==============================
-def append_data(new_entries):
-    sheet.append_rows(new_entries, value_input_option="USER_ENTERED")
-
-if st.button("送信", key="submit_button"):  
-    if st.session_state.selected_drivers:
-        game_date = st.session_state.date.strftime("%m/%d")
-
-        new_entries = []
-        for driver in st.session_state.selected_drivers:
-            # ✅ Set defaults properly
-            one_way = st.session_state.one_way.get(driver, False)
-            toll_round_trip = st.session_state.toll_round_trip.get(driver, False)
-            toll_one_way = st.session_state.toll_one_way.get(driver, False)
-
-            # ✅ Ensure toll_cost is handled properly
-            toll_cost = st.session_state.toll_cost.get(driver, "0")  
-            toll_cost_numeric = pd.to_numeric(toll_cost, errors="coerce")
-            toll_cost = int(toll_cost_numeric) if not pd.isna(toll_cost_numeric) else "未定"
-
-            # ✅ Compute amount correctly
-            amount = st.session_state.amount  
-            if one_way:  
-                amount /= 2  
-            if toll_round_trip:  
-                amount = toll_cost  
-            elif toll_one_way:  
-                amount = (st.session_state.amount / 2) + (toll_cost if toll_cost != "未定" else 0)  
-
-            # ✅ Ensure "補足" (Notes) correctly saves "未定"
-            supplement = "未定*" if toll_cost == "未定" else ""
-
-            new_entries.append([
-                st.session_state.date.strftime("%Y-%m-%d"), 
-                driver, 
-                int(amount) if toll_cost != "未定" else "未定", 
-                "あり" if toll_round_trip or toll_one_way else "なし", 
-                supplement  # ✅ Now properly updates "補足"
-            ])
-
-        append_data(new_entries)
-        st.success("✅ データが保存されました！")
-        st.rerun()
-
-def load_from_sheets():
-    records = sheet.get_all_values()
-
-    required_columns = ["日付", "名前", "金額", "高速道路", "補足"]
-
-    # ✅ If the sheet is empty or missing headers, return a DataFrame with correct headers
-    if not records or len(records) < 2:
-        return pd.DataFrame(columns=required_columns)
-
-    df = pd.DataFrame(records[1:], columns=records[0])
-
-    # ✅ Ensure all required columns exist
-    for col in required_columns:
-        if col not in df.columns:
-            df[col] = ""  # Default missing columns to an empty string
-
-    df["金額"] = pd.to_numeric(df["金額"], errors="coerce").fillna(0).astype(int)
-    df["日付"] = pd.to_datetime(df["日付"], errors="coerce").dt.strftime("%Y-%m-%d")
-
-    return df
-
-# ==============================
 # Monthly Summary Section
 # ==============================
 st.header("📊 月ごとの集計")
@@ -228,8 +161,15 @@ else:
     # ✅ Define `pending_inputs` BEFORE using it
     pending_inputs = {}
 
+    # ✅ Define a function to apply formatting for "未定" cells
+    def format_cell(value, is_pending):
+        return f"<b>{value}</b>" if is_pending else f"{value}"  # Bold formatting if "未定"
+
     # ✅ Copy pivot table and convert to strings to allow formatting
     styled_df = pivot_summary.astype(str)
+
+    # ✅ Create a separate list for inputs (displayed later)
+    inputs_section = []
 
     for col in styled_df.columns:
         for index, value in styled_df[col].items():
@@ -237,21 +177,19 @@ else:
             filtered_df = df[(df["年-月"] == index) & (df["名前"] == col)]
             is_pending = filtered_df["未定フラグ"].any() if not filtered_df.empty else False
 
-            # ✅ Apply formatting for "未定" cells **after** determining is_pending
-            def format_cell(value, is_pending):
-                return f"<b>{value}</b>" if is_pending else f"{value}"  # Bold formatting if "未定"
-
+            # ✅ Store formatted values in the table
             styled_df.at[index, col] = format_cell(value, is_pending)
 
-            # ✅ Add an input field for "未定" updates
+            # ✅ Store input fields for later display
             if is_pending:
                 pending_inputs[(index, col)] = st.text_input(f"{index} - {col} の高速料金を入力", "")
+                inputs_section.append((index, col, pending_inputs[(index, col)]))  # Store for later
 
     # ✅ Convert to HTML & Render with Markdown
     styled_html = styled_df.to_html(escape=False)
     st.markdown(styled_html, unsafe_allow_html=True)
 
-    # ✅ Handle updates properly
+    # ✅ Move input fields BELOW the 更新 button
     if st.button("更新", key="update_pending"):
         for (index, col), new_value in pending_inputs.items():
             if new_value.strip():  # If user enters a value
@@ -259,10 +197,16 @@ else:
                 for i, row in enumerate(all_records):
                     if i > 0 and row[0] == index and row[1] == col:  # Match "年-月" and "名前"
                         sheet.update_cell(i + 1, 3, new_value)  # Update 金額 column
-                        sheet.update_cell(i + 1, 5, "")  # Clear "未定" in 補足 column
+                        sheet.update_cell(i + 1, 5, "")  # ✅ Clear "未定" from 補足 column
 
         st.success("✅ 高速料金が更新されました！")
         st.rerun()
+
+    # ✅ Display inputs BELOW the 更新 button
+    st.write("### ⬇️ 未定の高速料金を入力してください:")
+    for index, col, input_field in inputs_section:
+        st.text_input(f"{index} - {col} の高速料金を入力", value=input_field, key=f"final_input_{index}_{col}")
+
 
 
 
