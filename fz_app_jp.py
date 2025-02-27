@@ -148,48 +148,39 @@ if st.button("送信", key="submit_button"):
 
         new_entries = []
         for driver in st.session_state.selected_drivers:
-            # ✅ Ensure checkboxes default to False when not selected
+            # ✅ Set defaults properly
             one_way = st.session_state.one_way.get(driver, False)
             toll_round_trip = st.session_state.toll_round_trip.get(driver, False)
             toll_one_way = st.session_state.toll_one_way.get(driver, False)
 
-            # ✅ Ensure toll_cost defaults to 0 instead of "未定"
+            # ✅ Ensure toll_cost is handled properly
             toll_cost = st.session_state.toll_cost.get(driver, "0")  
             toll_cost_numeric = pd.to_numeric(toll_cost, errors="coerce")
             toll_cost = int(toll_cost_numeric) if not pd.isna(toll_cost_numeric) else "未定"
 
-            # ✅ Start with the base amount
+            # ✅ Compute amount correctly
             amount = st.session_state.amount  
-            
-            # ✅ Adjust reimbursement calculations correctly
             if one_way:  
-                amount /= 2  # 一般道路片道 → 半額
+                amount /= 2  
             if toll_round_trip:  
-                amount = toll_cost  # 高速道路往復 → Only reimburse toll
+                amount = toll_cost  
             elif toll_one_way:  
-                amount = (st.session_state.amount / 2) + (toll_cost if toll_cost != "未定" else 0)  # 半額 + Toll
+                amount = (st.session_state.amount / 2) + (toll_cost if toll_cost != "未定" else 0)  
 
-            # ✅ Ensure clean values for Google Sheets
-            highway_use = "あり" if toll_round_trip or toll_one_way else "なし"
-            one_way_status = "あり" if one_way else "なし"
-
-            # ✅ Only apply "未定" in 補足 if toll_cost was actually "未定"
+            # ✅ Ensure "補足" (Notes) correctly saves "未定"
             supplement = "未定*" if toll_cost == "未定" else ""
 
             new_entries.append([
                 st.session_state.date.strftime("%Y-%m-%d"), 
                 driver, 
                 int(amount) if toll_cost != "未定" else "未定", 
-                highway_use,  # ✅ Stores "あり" or "なし"
-                one_way_status,  # ✅ Stores "あり" or "なし"
-                supplement
+                "あり" if toll_round_trip or toll_one_way else "なし", 
+                supplement  # ✅ Now properly updates "補足"
             ])
 
         append_data(new_entries)
         st.success("✅ データが保存されました！")
         st.rerun()
-
-
 
 def load_from_sheets():
     records = sheet.get_all_values()
@@ -215,9 +206,6 @@ def load_from_sheets():
 # ==============================
 # Monthly Summary Section
 # ==============================
-# ==============================
-# Monthly Summary Section
-# ==============================
 st.header("📊 月ごとの集計")
 
 df = pd.DataFrame(sheet.get_all_records())
@@ -237,31 +225,33 @@ else:
     # ✅ Create a summary table
     pivot_summary = df.pivot_table(index="年-月", columns="名前", values="金額", aggfunc="sum", fill_value=0)
 
-    # ✅ Apply formatting for "未定" cells
+    # ✅ Define pending_inputs BEFORE using it
+    pending_inputs = {}
+
+    # ✅ Apply formatting for "未定" cells & create input fields for updates
     def format_cell(value, is_pending):
         if is_pending:
             return f"<b>{value}</b>"  # Bold formatting
         return f"{value}"  # Regular formatting
 
-    # ✅ Convert the DataFrame to HTML with formatted cells
     styled_df = pivot_summary.copy()
     for col in styled_df.columns:
         for index, value in styled_df[col].items():
             is_pending = df[(df["年-月"] == index) & (df["名前"] == col)]["未定フラグ"].any()
             styled_df.at[index, col] = format_cell(value, is_pending)
 
+            # ✅ Add an input field for "未定" updates
+            if is_pending:
+                pending_inputs[(index, col)] = st.text_input(f"{index} - {col} の高速料金を入力", "")
+
     # ✅ Convert to HTML & Render with Markdown
-    styled_html = styled_df.to_html(escape=False)  # escape=False allows HTML formatting
+    styled_html = styled_df.to_html(escape=False)
     st.markdown(styled_html, unsafe_allow_html=True)
 
-
-    # ==============================
-    # ✅ Process User Input for "未定" Fields
-    # ==============================
+    # ✅ Handle updates properly
     if st.button("更新", key="update_pending"):
         for (index, col), new_value in pending_inputs.items():
-            if new_value.strip():  # If the user entered a value
-                # ✅ Find and update the Google Sheet entry
+            if new_value.strip():  # If user enters a value
                 all_records = sheet.get_all_values()
                 for i, row in enumerate(all_records):
                     if i > 0 and row[0] == index and row[1] == col:  # Match "年-月" and "名前"
