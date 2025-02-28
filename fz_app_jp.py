@@ -152,8 +152,21 @@ st.session_state.selected_drivers = new_selected_drivers
 if st.button("運転手を確定する"):
     st.session_state.confirmed_drivers = True
 
-if st.session_state.confirmed_drivers:
-    st.session_state.amount = st.radio("金額を選択してください", [200, 400, 600, 800, 1000, 1200])
+# Google Maps Destination Input
+st.write("### 目的地を入力してください")
+destination = st.text_input("目的地を入力（例: 大阪駅）", key="destination_input")
+
+if st.button("距離を計算"):
+    if destination:
+        distance = get_distance(destination)
+        if distance is not None:
+            reimbursement = calculate_reimbursement(distance)
+            st.session_state.amount = reimbursement
+            st.session_state.distance = distance  # Save the calculated distance
+            st.success(f"🚗 距離: {distance:.1f} km")
+            st.success(f"💴 車代: ¥{reimbursement}")
+    else:
+        st.error("⚠️ 目的地を入力してください！")
 
     for driver in st.session_state.selected_drivers:
         st.session_state.one_way[driver] = st.checkbox(f"{driver} の一般道路片道", value=st.session_state.one_way.get(driver, False), key=f"one_way_{driver}")
