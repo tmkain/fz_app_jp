@@ -94,10 +94,10 @@ if "amount" not in st.session_state:
 # ==============================
 # Google Maps Distance Calculation
 # ==============================
-API_KEY = os.getenv("GMAPS_API_KEY")  # ⚠️ Add your Google Maps API key to environment variables
+API_KEY = os.getenv("GMAPS_API_KEY")
 gmaps = googlemaps.Client(key=API_KEY)
 
-BASE_LOCATION = "Tokyo Station"  # ⚠️ Change to your base location (e.g., your office)
+BASE_LOCATION = "埼玉県和光市南1丁目5番10号"  # ⚠️ Change to your base location (e.g., your office)
 
 def get_distance(destination):
     """
@@ -117,14 +117,18 @@ def calculate_reimbursement(distance_km):
     Returns the reimbursement amount based on distance.
     ⚠️ Modify tiers based on your reimbursement policy.
     """
-    if distance_km < 10:
+    if distance_km < 5:
         return 200
-    elif distance_km < 50:
+    elif distance_km < 10:
         return 400
-    elif distance_km < 100:
+    elif distance_km < 20:
         return 600
-    else:
+    elif distance_km < 30:
         return 800
+    elif distance_km < 40:
+        return 1000
+    else:
+        return 1200
 
 
 # ==============================
