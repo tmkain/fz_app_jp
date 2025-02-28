@@ -92,6 +92,42 @@ if "amount" not in st.session_state:
     st.session_state.amount = 200  
 
 # ==============================
+# Google Maps Distance Calculation
+# ==============================
+API_KEY = os.getenv("GMAPS_API_KEY")  # ⚠️ Add your Google Maps API key to environment variables
+gmaps = googlemaps.Client(key=API_KEY)
+
+BASE_LOCATION = "Tokyo Station"  # ⚠️ Change to your base location (e.g., your office)
+
+def get_distance(destination):
+    """
+    Returns the driving distance in kilometers from BASE_LOCATION to the destination.
+    """
+    try:
+        result = gmaps.distance_matrix(origins=BASE_LOCATION, destinations=destination, mode="driving")
+        distance_meters = result["rows"][0]["elements"][0]["distance"]["value"]
+        distance_km = distance_meters / 1000  # Convert meters to km
+        return distance_km
+    except Exception as e:
+        st.error(f"エラー: {e}")
+        return None
+
+def calculate_reimbursement(distance_km):
+    """
+    Returns the reimbursement amount based on distance.
+    ⚠️ Modify tiers based on your reimbursement policy.
+    """
+    if distance_km < 10:
+        return 200
+    elif distance_km < 50:
+        return 400
+    elif distance_km < 100:
+        return 600
+    else:
+        return 800
+
+
+# ==============================
 # Data Entry Section
 # ==============================
 st.title("🚗 Fz 車代管理アプリ")
