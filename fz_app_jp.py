@@ -6,6 +6,7 @@ from datetime import datetime
 import os
 import json
 import time
+import googlemaps
 
 # ==============================
 # Secure Full-Screen Login System
@@ -31,6 +32,15 @@ if not st.session_state.logged_in:
         else:
             st.error("🚫 ユーザー名またはパスワードが違います")
     st.stop()
+
+# Load API Key from environment variables
+API_KEY = os.getenv("GMAPS_API_KEY")  # ✅ Fetch from Render's environment settings
+
+if not API_KEY:
+    raise ValueError("⚠️ Missing Google Maps API Key! Set GMAPS_API_KEY in environment variables.")
+
+# Initialize Google Maps client
+gmaps = googlemaps.Client(key=API_KEY)
 
 # ==============================
 # Google Sheets Authentication (Cached)
