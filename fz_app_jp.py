@@ -103,8 +103,15 @@ def get_distance(destination):
     """
     Returns the driving distance in kilometers from BASE_LOCATION to the destination.
     """
+    BASE_LOCATION = "埼玉県和光市南1丁目5番10号"  # ✅ Change to your actual base location
+    
     try:
-        result = gmaps.distance_matrix(origins="Your Base Location",destinations="Your Destination",mode="driving",traffic_model="best_guess",avoid="tolls",)
+        result = gmaps.distance_matrix(
+            origins=BASE_LOCATION,
+            destinations=destination,
+            mode="driving",
+            avoid="tolls",
+        )
         distance_meters = result["rows"][0]["elements"][0]["distance"]["value"]
         distance_km = distance_meters / 1000  # Convert meters to km
         return distance_km
