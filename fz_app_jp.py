@@ -104,7 +104,14 @@ def get_distance(destination):
     Returns the driving distance in kilometers from BASE_LOCATION to the destination.
     """
     try:
-        result = gmaps.distance_matrix(origins=BASE_LOCATION, destinations=destination, mode="driving")
+        result = gmaps.distance_matrix(
+    origins="Your Base Location",
+    destinations="Your Destination",
+    mode="driving",
+    traffic_model="best_guess",
+    avoid="tolls",
+    avoid="highways"
+)
         distance_meters = result["rows"][0]["elements"][0]["distance"]["value"]
         distance_km = distance_meters / 1000  # Convert meters to km
         return distance_km
