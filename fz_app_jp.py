@@ -171,7 +171,7 @@ if st.session_state.confirmed_drivers:
 
 # ✅ Move 高速道路 options outside the "距離を計算" button block
 #    → This ensures they don't disappear after clicking "距離を計算"
-if st.session_state.confirmed_drivers:
+if "distance" in st.session_state:
     for driver in st.session_state.selected_drivers:
         st.session_state.one_way[driver] = st.checkbox(f"{driver} の一般道路片道", value=st.session_state.one_way.get(driver, False), key=f"one_way_{driver}")
         st.session_state.toll_round_trip[driver] = st.checkbox(f"{driver} の高速道路往復", value=st.session_state.toll_round_trip.get(driver, False), key=f"toll_round_trip_{driver}")
