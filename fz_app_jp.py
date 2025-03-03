@@ -423,7 +423,7 @@ with tab2:
     # ---- 出席確認 (Player Attendance) ----
     st.subheader("👥 出席確認（チェックを入れてください）")
 
-    # ✅ Store selections in session_state to prevent page refresh
+    # ✅ Store selections in session_state to prevent flickering
     if "selected_players" not in st.session_state:
         st.session_state.selected_players = set()
 
@@ -437,19 +437,22 @@ with tab2:
         player_columns = st.columns(2)  # ✅ Arrange checkboxes in 2 columns
         for i, player in enumerate(players):
             with player_columns[i % 2]:  # ✅ Distribute checkboxes across two columns
-                key = f"player_{player['名前']}"  # ✅ Ensure unique key for each player
+                key = f"player_{player['名前'].replace(' ', '_')}"  # ✅ Ensure unique key
                 checked = player['名前'] in st.session_state.selected_players
-                if st.checkbox(f"{player['名前']}（{player['学年']}年）", value=checked, key=key):
+                new_value = st.checkbox(f"{player['名前']}（{player['学年']}年）", value=checked, key=key)
+
+                # ✅ Only update session state when the value changes
+                if new_value:
                     st.session_state.selected_players.add(player['名前'])
                 else:
-                    st.session_state.selected_players.discard(player['名前'])  # ✅ Remove if unchecked
+                    st.session_state.selected_players.discard(player['名前'])
     else:
         st.warning("⚠️ 選手データがありません。")
 
     # ---- 運転手選択 (Driver Selection) ----
     st.subheader("🚘 運転手（チェックを入れてください）")
 
-    # ✅ Store driver selections in session_state to prevent page refresh
+    # ✅ Store driver selections in session_state to prevent flickering
     if "selected_drivers" not in st.session_state:
         st.session_state.selected_drivers = set()
 
@@ -459,12 +462,15 @@ with tab2:
         driver_columns = st.columns(2)  # ✅ Arrange checkboxes in 2 columns
         for i, driver in enumerate(drivers):
             with driver_columns[i % 2]:  # ✅ Distribute checkboxes across two columns
-                key = f"driver_{driver['運転手']}"  # ✅ Ensure unique key for each driver
+                key = f"driver_{driver['運転手'].replace(' ', '_')}"  # ✅ Ensure unique key
                 checked = driver['運転手'] in st.session_state.selected_drivers
-                if st.checkbox(f"{driver['運転手']}（{driver['定員']}人乗り）", value=checked, key=key):
+                new_value = st.checkbox(f"{driver['運転手']}（{driver['定員']}人乗り）", value=checked, key=key)
+
+                # ✅ Only update session state when the value changes
+                if new_value:
                     st.session_state.selected_drivers.add(driver['運転手'])
                 else:
-                    st.session_state.selected_drivers.discard(driver['運転手'])  # ✅ Remove if unchecked
+                    st.session_state.selected_drivers.discard(driver['運転手'])
     else:
         st.warning("⚠️ 運転手データがありません。")
 
@@ -509,3 +515,4 @@ with tab2:
             # Warn if players remain unassigned
             if player_queue:
                 st.warning(f"⚠️ 割り当てできなかった選手: {', '.join(player_queue)}")
+
