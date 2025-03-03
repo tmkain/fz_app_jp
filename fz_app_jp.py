@@ -427,6 +427,42 @@ if sheet2_data:
 else:
     df_sheet2 = pd.DataFrame(columns=["名前", "学年", "運転手", "定員"])  # ✅ Ensure correct columns
 
+import time
+
+# ---- Google Sheets Data Caching ----
+def load_google_sheet_data():
+    """Loads Google Sheet data only when necessary to avoid API rate limits."""
+    if "sheet2_data" not in st.session_state or time.time() - st.session_state["last_fetch_time"] > 60:
+        sheet2_data = sheet2.get_all_values()
+        st.session_state["sheet2_data"] = sheet2_data
+        st.session_state["last_fetch_time"] = time.time()  # ✅ Store last refresh time
+    return st.session_state["sheet2_data"]
+
+# ✅ Load Google Sheets data efficiently
+sheet2_data = load_google_sheet_data()
+if sheet2_data:
+    df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0])  # ✅ Convert to DataFrame
+else:
+    df_sheet2 = pd.DataFrame(columns=["名前", "学年", "運転手", "定員"])  # ✅ Ensure correct columns
+
+import time
+
+# ---- Google Sheets Data Caching ----
+def load_google_sheet_data():
+    """Loads Google Sheet data only when necessary to avoid API rate limits."""
+    if "sheet2_data" not in st.session_state or time.time() - st.session_state["last_fetch_time"] > 60:
+        sheet2_data = sheet2.get_all_values()
+        st.session_state["sheet2_data"] = sheet2_data
+        st.session_state["last_fetch_time"] = time.time()  # ✅ Store last refresh time
+    return st.session_state["sheet2_data"]
+
+# ✅ Load Google Sheets data efficiently
+sheet2_data = load_google_sheet_data()
+if sheet2_data:
+    df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0])  # ✅ Convert to DataFrame
+else:
+    df_sheet2 = pd.DataFrame(columns=["名前", "学年", "運転手", "定員"])  # ✅ Ensure correct columns
+
 # ---- TAB 2: 車両割り当て (New Player-to-Car Assignment) ----
 with tab2:
     st.subheader("🎯 車両割り当てシステム")
@@ -462,7 +498,7 @@ with tab2:
 
         # ✅ Apply changes to session_state *only after all selections are made*
         if st.button("確定", key="confirm_players"):
-            st.session_state.selected_players = temp_selected_players.copy()  # ✅ Copy to session_state properly
+            st.session_state.selected_players = temp_selected_players.union(st.session_state.selected_players)  # ✅ Merge selections
             st.success("✅ 選手が確定されました")
     else:
         st.warning("⚠️ 選手データがありません。")
@@ -495,7 +531,7 @@ with tab2:
 
         # ✅ Apply changes to session_state *only after all selections are made*
         if st.button("確定", key="confirm_drivers"):
-            st.session_state.selected_drivers = temp_selected_drivers.copy()  # ✅ Copy to session_state properly
+            st.session_state.selected_drivers = temp_selected_drivers.union(st.session_state.selected_drivers)  # ✅ Merge selections
             st.success("✅ 運転手が確定されました")
     else:
         st.warning("⚠️ 運転手データがありません。")
@@ -541,4 +577,3 @@ with tab2:
             # Warn if players remain unassigned
             if player_queue:
                 st.warning(f"⚠️ 割り当てできなかった選手: {', '.join(player_queue)}")
-
