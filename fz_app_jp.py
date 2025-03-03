@@ -412,9 +412,10 @@ with tab1:
 import time
 
 # ---- Google Sheets Data Caching ----
+@st.cache_resource
 def load_google_sheet_data():
     """Loads Google Sheet data only when necessary to avoid API rate limits."""
-    if "sheet2_data" not in st.session_state or time.time() - st.session_state["last_fetch_time"] > 60:
+    if "sheet2_data" not in st.session_state or time.time() - st.session_state.get("last_fetch_time", 0) > 60:
         sheet2_data = sheet2.get_all_values()
         st.session_state["sheet2_data"] = sheet2_data
         st.session_state["last_fetch_time"] = time.time()  # ✅ Store last refresh time
@@ -422,247 +423,91 @@ def load_google_sheet_data():
 
 # ✅ Load Google Sheets data efficiently
 sheet2_data = load_google_sheet_data()
-if sheet2_data:
-    df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0])  # ✅ Convert to DataFrame
-else:
-    df_sheet2 = pd.DataFrame(columns=["名前", "学年", "運転手", "定員"])  # ✅ Ensure correct columns
-
-import time
-
-# ---- Google Sheets Data Caching ----
-def load_google_sheet_data():
-    """Loads Google Sheet data only when necessary to avoid API rate limits."""
-    if "sheet2_data" not in st.session_state or time.time() - st.session_state["last_fetch_time"] > 60:
-        sheet2_data = sheet2.get_all_values()
-        st.session_state["sheet2_data"] = sheet2_data
-        st.session_state["last_fetch_time"] = time.time()  # ✅ Store last refresh time
-    return st.session_state["sheet2_data"]
-
-# ✅ Load Google Sheets data efficiently
-sheet2_data = load_google_sheet_data()
-if sheet2_data:
-    df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0])  # ✅ Convert to DataFrame
-else:
-    df_sheet2 = pd.DataFrame(columns=["名前", "学年", "運転手", "定員"])  # ✅ Ensure correct columns
-
-import time
-
-# ---- Google Sheets Data Caching ----
-def load_google_sheet_data():
-    """Loads Google Sheet data only when necessary to avoid API rate limits."""
-    if "sheet2_data" not in st.session_state or time.time() - st.session_state["last_fetch_time"] > 60:
-        sheet2_data = sheet2.get_all_values()
-        st.session_state["sheet2_data"] = sheet2_data
-        st.session_state["last_fetch_time"] = time.time()  # ✅ Store last refresh time
-    return st.session_state["sheet2_data"]
-
-# ✅ Load Google Sheets data efficiently
-sheet2_data = load_google_sheet_data()
-if sheet2_data:
-    df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0])  # ✅ Convert to DataFrame
-else:
-    df_sheet2 = pd.DataFrame(columns=["名前", "学年", "運転手", "定員"])  # ✅ Ensure correct columns
-
-import time
-
-# ---- Google Sheets Data Caching ----
-def load_google_sheet_data():
-    """Loads Google Sheet data only when necessary to avoid API rate limits."""
-    if "sheet2_data" not in st.session_state or time.time() - st.session_state["last_fetch_time"] > 60:
-        sheet2_data = sheet2.get_all_values()
-        st.session_state["sheet2_data"] = sheet2_data
-        st.session_state["last_fetch_time"] = time.time()  # ✅ Store last refresh time
-    return st.session_state["sheet2_data"]
-
-# ✅ Load Google Sheets data efficiently
-sheet2_data = load_google_sheet_data()
-if sheet2_data:
-    df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0])  # ✅ Convert to DataFrame
-else:
-    df_sheet2 = pd.DataFrame(columns=["名前", "学年", "運転手", "定員"])  # ✅ Ensure correct columns
-
-import time
-
-# ---- Google Sheets Data Caching ----
-def load_google_sheet_data():
-    """Loads Google Sheet data only when necessary to avoid API rate limits."""
-    if "sheet2_data" not in st.session_state or time.time() - st.session_state["last_fetch_time"] > 60:
-        sheet2_data = sheet2.get_all_values()
-        st.session_state["sheet2_data"] = sheet2_data
-        st.session_state["last_fetch_time"] = time.time()  # ✅ Store last refresh time
-    return st.session_state["sheet2_data"]
-
-# ✅ Load Google Sheets data efficiently
-sheet2_data = load_google_sheet_data()
-if sheet2_data:
-    df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0])  # ✅ Convert to DataFrame
-else:
-    df_sheet2 = pd.DataFrame(columns=["名前", "学年", "運転手", "定員"])  # ✅ Ensure correct columns
-
-import time
-
-# ---- Google Sheets Data Caching ----
-def load_google_sheet_data():
-    """Loads Google Sheet data only when necessary to avoid API rate limits."""
-    if "sheet2_data" not in st.session_state or time.time() - st.session_state["last_fetch_time"] > 60:
-        sheet2_data = sheet2.get_all_values()
-        st.session_state["sheet2_data"] = sheet2_data
-        st.session_state["last_fetch_time"] = time.time()  # ✅ Store last refresh time
-    return st.session_state["sheet2_data"]
-
-# ✅ Load Google Sheets data efficiently
-sheet2_data = load_google_sheet_data()
-if sheet2_data:
-    df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0])  # ✅ Convert to DataFrame
-else:
-    df_sheet2 = pd.DataFrame(columns=["名前", "学年", "運転手", "定員"])  # ✅ Ensure correct columns
-
-import time
-
-# ---- Google Sheets Data Caching ----
-def load_google_sheet_data():
-    """Loads Google Sheet data only when necessary to avoid API rate limits."""
-    if "sheet2_data" not in st.session_state or time.time() - st.session_state["last_fetch_time"] > 60:
-        sheet2_data = sheet2.get_all_values()
-        st.session_state["sheet2_data"] = sheet2_data
-        st.session_state["last_fetch_time"] = time.time()  # ✅ Store last refresh time
-    return st.session_state["sheet2_data"]
-
-# ✅ Load Google Sheets data efficiently
-sheet2_data = load_google_sheet_data()
-if sheet2_data:
-    df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0])  # ✅ Convert to DataFrame
-else:
-    df_sheet2 = pd.DataFrame(columns=["名前", "学年", "運転手", "定員"])  # ✅ Ensure correct columns
+df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0]) if sheet2_data else pd.DataFrame(columns=["名前", "学年", "運転手", "定員"])
 
 # ---- TAB 2: 車両割り当て (New Player-to-Car Assignment) ----
 with tab2:
     st.subheader("🎯 車両割り当てシステム")
 
-    # ---- 出席確認 (Player Attendance) ----
+    # ✅ **出席確認 (Player Attendance)**
     st.subheader("👥 出席確認（チェックを入れてください）")
-
-    # ✅ Ensure selections persist
     if "selected_players" not in st.session_state:
         st.session_state.selected_players = set()
 
     if not df_sheet2.empty:
         players = df_sheet2[['名前', '学年']].dropna().to_dict(orient="records")
 
-        # ✅ Handle "全員選択" properly by updating session state immediately
         if st.button("全員選択", key="select_all_players"):
-            st.session_state.selected_players = {p["名前"] for p in players}  # ✅ Update session state immediately
+            st.session_state.selected_players = {p["名前"] for p in players}
 
-        player_columns = st.columns(2)  # ✅ Arrange checkboxes in 2 columns
+        player_columns = st.columns(2)
         for i, player in enumerate(players):
-            with player_columns[i % 2]:  # ✅ Distribute checkboxes across two columns
-                key = f"player_{player['名前'].replace(' ', '_')}"  # ✅ Ensure unique key
+            with player_columns[i % 2]:
+                key = f"player_{player['名前']}"
                 checked = player['名前'] in st.session_state.selected_players
-                new_value = st.checkbox(f"{player['名前']}（{player['学年']}年）", value=checked, key=key)
-
-                # ✅ Update session state directly when checkbox is toggled
-                if new_value:
+                if st.checkbox(f"{player['名前']}（{player['学年']}年）", value=checked, key=key):
                     st.session_state.selected_players.add(player['名前'])
                 else:
                     st.session_state.selected_players.discard(player['名前'])
 
-        # ✅ Debug: Print selected players
-        st.write(f"🎯 選択された選手: {st.session_state.selected_players}")
-
     else:
         st.warning("⚠️ 選手データがありません。")
 
-    # ---- 運転手選択 (Driver Selection) ----
+    # ✅ **運転手選択 (Driver Selection)**
     st.subheader("🚘 運転手（チェックを入れてください）")
-
-    # ✅ Ensure driver selections persist
     if "selected_drivers" not in st.session_state:
         st.session_state.selected_drivers = set()
 
     if not df_sheet2.empty:
-        # ✅ Remove blank rows from the driver list
         drivers = [d for d in df_sheet2[['運転手', '定員']].dropna().to_dict(orient="records") if d["運転手"] and d["定員"]]
 
-        driver_columns = st.columns(2)  # ✅ Arrange checkboxes in 2 columns
+        driver_columns = st.columns(2)
         for i, driver in enumerate(drivers):
-            with driver_columns[i % 2]:  # ✅ Distribute checkboxes across two columns
-                key = f"driver_{driver['運転手'].replace(' ', '_')}_{i}"  # ✅ Ensure unique key
+            with driver_columns[i % 2]:
+                key = f"driver_{driver['運転手']}_{i}"
                 checked = driver['運転手'] in st.session_state.selected_drivers
-                new_value = st.checkbox(f"{driver['運転手']}（{driver['定員']}人乗り）", value=checked, key=key)
-
-                # ✅ Update session state directly when checkbox is toggled
-                if new_value:
+                if st.checkbox(f"{driver['運転手']}（{driver['定員']}人乗り）", value=checked, key=key):
                     st.session_state.selected_drivers.add(driver['運転手'])
                 else:
                     st.session_state.selected_drivers.discard(driver['運転手'])
 
-        # ✅ Debug: Print selected drivers
-        st.write(f"🚗 選択された運転手: {st.session_state.selected_drivers}")
-
     else:
         st.warning("⚠️ 運転手データがありません。")
 
-    # ---- 最大車両数設定 (Max Cars Allowed) ----
-    max_cars = st.number_input("🔢 最大車両数:", min_value=1, max_value=len(drivers), value=10)  # ✅ Default is now 10
+    # ✅ **最大車両数設定 (Max Cars Allowed)**
+    max_cars = st.number_input("🔢 最大車両数:", min_value=1, max_value=len(drivers), value=10)
 
-    # ---- 自動割り当てボタン ----
+    # ✅ **自動割り当て**
     if st.button("🖱️ 自動割り当て"):
         if not st.session_state.selected_players or not st.session_state.selected_drivers:
-            st.warning("⚠️ 選手と運転手を選択してください！")  # ✅ Fixes issue of missing selections
+            st.warning("⚠️ 選手と運転手を選択してください！")
         else:
-            # Parse selected players and drivers
-            selected_player_list = list(st.session_state.selected_players)
-            selected_driver_list = list(st.session_state.selected_drivers)
+            selected_players = list(st.session_state.selected_players)
+            selected_drivers = list(st.session_state.selected_drivers)
 
-            # ✅ Debug: Check initial player and driver lists
-            st.write(f"🎯 最終的な選手リスト: {selected_player_list}")
-            st.write(f"🚗 最終的な運転手リスト: {selected_driver_list}")
+            # 🎓 **学年別に選手をソート**
+            grade_5 = [p["名前"] for p in players if p["名前"] in selected_players and p["学年"] == "5"]
+            grade_6 = [p["名前"] for p in players if p["名前"] in selected_players and p["学年"] == "6"]
 
-            # Sort players by grade level
-            grade_5 = [p for p in selected_player_list if "5" in p]
-            grade_6 = [p for p in selected_player_list if "6" in p]
+            # 🚗 **運転手と定員数を取得**
+            driver_capacities = {d["運転手"]: int(d["定員"]) for d in drivers if d["運転手"] in selected_drivers}
+            sorted_drivers = sorted(driver_capacities.items(), key=lambda x: x[1], reverse=True)[:max_cars]
 
-            # ✅ Debug: Print sorted player lists
-            st.write(f"🎓 5年生: {grade_5}")
-            st.write(f"🎓 6年生: {grade_6}")
-
-            # Sort drivers by capacity (largest first)
-            driver_capacities = {d['運転手']: int(d['定員']) for d in drivers if d['運転手'] in selected_driver_list}
-            sorted_drivers = sorted(driver_capacities.items(), key=lambda x: x[1], reverse=True)
-
-            # ✅ Debug: Print sorted drivers
-            st.write(f"🚗 並び替えた運転手: {sorted_drivers}")
-
-            # Limit to max cars allowed
-            sorted_drivers = sorted_drivers[:max_cars]
-
-            # Assign players to cars
-            assignments = {}
-            player_queue = grade_5 + grade_6  # Prioritize grade grouping
-
-            # ✅ Debug: Print initial player queue
-            st.write(f"🛑 割り当て前の選手キュー: {player_queue}")
+            # ✅ **割り当て処理**
+            assignments, player_queue = {}, grade_5 + grade_6  # 🔹 5年生→6年生の順に割り当て
 
             for driver, capacity in sorted_drivers:
                 if player_queue:
-                    assigned_players = player_queue[:min(len(player_queue), capacity)]
+                    assigned_players = player_queue[:capacity]
                     assignments[driver] = assigned_players
                     player_queue = player_queue[len(assigned_players):]  # ✅ Remove assigned players
 
-            # ✅ Debug: Print final assignments
-            st.write(f"📋 割り当て結果: {assignments}")
-
-            # ---- 結果表示 (Show Results) ----
+            # ✅ **割り当て結果を表示**
             st.subheader("📝 割り当て結果")
-
             for driver, players in assignments.items():
                 st.markdown(f"🚗 **{driver} の車** ({driver_capacities[driver]}人乗り)")
-                if players:
-                    for player in players:
-                        st.write(f"- {player}")
-                else:
-                    st.write("❌ 割り当てなし")
+                for player in players:
+                    st.write(f"- {player}")
 
-            # Warn if players remain unassigned
             if player_queue:
                 st.warning(f"⚠️ 割り当てできなかった選手: {', '.join(player_queue)}")
