@@ -433,7 +433,7 @@ with tab2:
         players = df_sheet2[['名前', '学年']].dropna().to_dict(orient="records")
 
         # ✅ "Select All" button (全員選択)
-        if st.button("全員選択"):
+        if st.button("全員選択", key="select_all_players"):
             temp_selected_players = {p["名前"] for p in players}  # ✅ Select all players
         
         player_columns = st.columns(2)  # ✅ Arrange checkboxes in 2 columns
@@ -450,7 +450,7 @@ with tab2:
                     temp_selected_players.discard(player['名前'])
 
         # ✅ Apply changes to session_state *only after all selections are made*
-        if st.button("確定"):
+        if st.button("確定", key="confirm_players"):
             st.session_state.selected_players = temp_selected_players
             st.success("✅ 選手が確定されました")
     else:
@@ -466,7 +466,8 @@ with tab2:
     temp_selected_drivers = set(st.session_state.selected_drivers)  # ✅ Temporary copy
 
     if not df_sheet2.empty:
-        drivers = df_sheet2[['運転手', '定員']].dropna().to_dict(orient="records")
+        # ✅ Remove blank rows from the driver list
+        drivers = [d for d in df_sheet2[['運転手', '定員']].dropna().to_dict(orient="records") if d["運転手"] and d["定員"]]
 
         driver_columns = st.columns(2)  # ✅ Arrange checkboxes in 2 columns
         for i, driver in enumerate(drivers):
@@ -482,7 +483,7 @@ with tab2:
                     temp_selected_drivers.discard(driver['運転手'])
 
         # ✅ Apply changes to session_state *only after all selections are made*
-        if st.button("確定"):
+        if st.button("確定", key="confirm_drivers"):
             st.session_state.selected_drivers = temp_selected_drivers
             st.success("✅ 運転手が確定されました")
     else:
