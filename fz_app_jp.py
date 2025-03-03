@@ -50,14 +50,27 @@ SHEET_NAME_1 = "Sheet1"
 SHEET_NAME_2 = "Sheet2"
 
 @st.cache_resource
-def get_google_sheet():
+def get_google_sheets():
     creds_json = os.getenv("GOOGLE_CREDENTIALS")
-    if creds_json:
-        creds_dict = json.loads(creds_json)
-        creds = Credentials.from_service_account_info(creds_dict, scopes=["https://www.googleapis.com/auth/spreadsheets"])
-        client = gspread.authorize(creds)
-        spreadsheet = client.open_by_key(SHEET_ID)
-        return spreadsheet.worksheet(SHEET_NAME_1), spreadsheet.worksheet(SHEET_NAME_2)
+    if not creds_json:
+        raise ValueError("🚨 GOOGLE_CREDENTIALS environment variable not found.")
+
+    creds_dict = json.loads(creds_json)
+    creds = Credentials.from_service_account_info(creds_dict, scopes=["https://www.googleapis.com/auth/spreadsheets"])
+    client = gspread.authorize(creds)
+    spreadsheet = client.open_by_key(SHEET_ID)
+
+    try:
+        sheet1 = spreadsheet.worksheet(SHEET_NAME_1)  # ✅ Sheet1 (Payments)
+        sheet2 = spreadsheet.worksheet(SHEET_NAME_2)  # ✅ Sheet2 (Car Assignments)
+    except gspread.WorksheetNotFound:
+        raise ValueError(f"🚨 Worksheet '{SHEET_NAME_1}' or '{SHEET_NAME_2}' not found in Google Sheet.")
+
+    return sheet1, sheet2
+
+# ✅ Correctly load both sheets
+sheet1, sheet2 = get_google_sheets()
+
     else:
         raise ValueError("GOOGLE_CREDENTIALS environment variable not found")
 
@@ -70,8 +83,8 @@ def ensure_sheet_headers(sheet, headers):
     # If the sheet is completely empty, add headers
     if not existing_data or len(existing_data) < 1:
         headers_sheet1 = [["日付", "名前", "金額", "高速道路", "補足"]]
-        headers_sheet2 = [["名前", "学年", "運転手", "定員"] # Car Assignments
-        sheet.append_rows(headers, value_input_option="USER_ENTERED")
+        headers_sheet2 = [["名前", "学年", "運転手", "定員"]] # Car Assignments
+        sheet.append_row(headers[0], value_input_option="USER_ENTERED")  # ✅ Use append_row() with a single list
 
 # Apply headers check
 ensure_sheet_headers(sheet1, headers_sheet1)
@@ -107,8 +120,6 @@ with tab1:
     # ==============================
     # Google Maps Distance Calculation
     # ==============================
-    API_KEY = os.getenv("GMAPS_API_KEY")
-    gmaps = googlemaps.Client(key=API_KEY)
     
     BASE_LOCATION = "埼玉県和光市南1丁目5番10号"  # ⚠️ Change to your base location (e.g., your office)
     
@@ -416,7 +427,10 @@ with tab2:
 
     # ---- 運転手選択 (Driver Selection) ----
     st.subheader("🚘 運転手（選択してください）")
-    drivers = df[['運転手', '定員']].dropna().to_dict(orient="records")
+    if not df.empty:
+        drivers = df[['運転手', '定員']].dropna().to_dict(orient="records")
+    else:
+        drivers = []  # ✅ Return an empty list if no data
     selected_drivers = st.multiselect(
         "利用可能な運転手を選択してください:", 
         [f"{d['運転手']}（{d['定員']}人乗り）" for d in drivers], 
