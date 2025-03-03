@@ -481,6 +481,24 @@ if sheet2_data:
 else:
     df_sheet2 = pd.DataFrame(columns=["名前", "学年", "運転手", "定員"])  # ✅ Ensure correct columns
 
+import time
+
+# ---- Google Sheets Data Caching ----
+def load_google_sheet_data():
+    """Loads Google Sheet data only when necessary to avoid API rate limits."""
+    if "sheet2_data" not in st.session_state or time.time() - st.session_state["last_fetch_time"] > 60:
+        sheet2_data = sheet2.get_all_values()
+        st.session_state["sheet2_data"] = sheet2_data
+        st.session_state["last_fetch_time"] = time.time()  # ✅ Store last refresh time
+    return st.session_state["sheet2_data"]
+
+# ✅ Load Google Sheets data efficiently
+sheet2_data = load_google_sheet_data()
+if sheet2_data:
+    df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0])  # ✅ Convert to DataFrame
+else:
+    df_sheet2 = pd.DataFrame(columns=["名前", "学年", "運転手", "定員"])  # ✅ Ensure correct columns
+
 # ---- TAB 2: 車両割り当て (New Player-to-Car Assignment) ----
 with tab2:
     st.subheader("🎯 車両割り当てシステム")
@@ -567,21 +585,30 @@ with tab2:
             # Limit to max cars allowed
             sorted_drivers = sorted_drivers[:max_cars]
 
-            # Assign players
+            # Assign players to cars
             assignments = {}
             player_queue = grade_5 + grade_6  # Prioritize grade grouping
 
             for driver, capacity in sorted_drivers:
-                assignments[driver] = player_queue[:capacity]
+                assigned_players = player_queue[:capacity]
+                assignments[driver] = assigned_players
                 player_queue = player_queue[capacity:]
 
             # ---- 結果表示 (Show Results) ----
             st.subheader("📝 割り当て結果")
-            for driver, players in assignments.items():
-                st.markdown(f"🚗 **{driver} の車** ({driver_capacities[driver]}人乗り)")
-                for player in players:
-                    st.write(f"- {player}")
+
+            if assignments:
+                for driver, players in assignments.items():
+                    st.markdown(f"🚗 **{driver} の車** ({driver_capacities[driver]}人乗り)")
+                    if players:
+                        for player in players:
+                            st.write(f"- {player}")
+                    else:
+                        st.write("❌ 割り当てなし")
+            else:
+                st.warning("⚠️ 割り当て可能な選手がいません。")
 
             # Warn if players remain unassigned
             if player_queue:
                 st.warning(f"⚠️ 割り当てできなかった選手: {', '.join(player_queue)}")
+
