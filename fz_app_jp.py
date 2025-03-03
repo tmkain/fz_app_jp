@@ -619,8 +619,8 @@ with tab2:
             st.write(f"🚗 最終的な運転手リスト: {selected_driver_list}")
 
             # Sort players by grade level
-            grade_5 = [p for p in selected_player_list if "5年" in p]
-            grade_6 = [p for p in selected_player_list if "6年" in p]
+            grade_5 = [p for p in selected_player_list if "5" in p]
+            grade_6 = [p for p in selected_player_list if "6" in p]
 
             # ✅ Debug: Print sorted player lists
             st.write(f"🎓 5年生: {grade_5}")
