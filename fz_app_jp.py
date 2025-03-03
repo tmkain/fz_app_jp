@@ -566,6 +566,9 @@ with tab2:
                 else:
                     st.session_state.selected_players.discard(player['名前'])
 
+        # ✅ Debug: Print selected players
+        st.write(f"🎯 選択された選手: {st.session_state.selected_players}")
+
     else:
         st.warning("⚠️ 選手データがありません。")
 
@@ -593,6 +596,9 @@ with tab2:
                 else:
                     st.session_state.selected_drivers.discard(driver['運転手'])
 
+        # ✅ Debug: Print selected drivers
+        st.write(f"🚗 選択された運転手: {st.session_state.selected_drivers}")
+
     else:
         st.warning("⚠️ 運転手データがありません。")
 
@@ -608,13 +614,24 @@ with tab2:
             selected_player_list = list(st.session_state.selected_players)
             selected_driver_list = list(st.session_state.selected_drivers)
 
+            # ✅ Debug: Check initial player and driver lists
+            st.write(f"🎯 最終的な選手リスト: {selected_player_list}")
+            st.write(f"🚗 最終的な運転手リスト: {selected_driver_list}")
+
             # Sort players by grade level
             grade_5 = [p for p in selected_player_list if "5年" in p]
             grade_6 = [p for p in selected_player_list if "6年" in p]
 
-            # Sort drivers by capacity (larger cars first)
+            # ✅ Debug: Print sorted player lists
+            st.write(f"🎓 5年生: {grade_5}")
+            st.write(f"🎓 6年生: {grade_6}")
+
+            # Sort drivers by capacity (largest first)
             driver_capacities = {d['運転手']: int(d['定員']) for d in drivers if d['運転手'] in selected_driver_list}
             sorted_drivers = sorted(driver_capacities.items(), key=lambda x: x[1], reverse=True)
+
+            # ✅ Debug: Print sorted drivers
+            st.write(f"🚗 並び替えた運転手: {sorted_drivers}")
 
             # Limit to max cars allowed
             sorted_drivers = sorted_drivers[:max_cars]
@@ -623,29 +640,29 @@ with tab2:
             assignments = {}
             player_queue = grade_5 + grade_6  # Prioritize grade grouping
 
+            # ✅ Debug: Print initial player queue
+            st.write(f"🛑 割り当て前の選手キュー: {player_queue}")
+
             for driver, capacity in sorted_drivers:
-                if player_queue:  # ✅ Ensure we only assign if there are players left
-                    assigned_players = player_queue[:capacity]
-                    assignments[driver] = assigned_players
-                    player_queue = player_queue[capacity:]  # ✅ Remove assigned players from queue
-                else:
-                    assignments[driver] = []  # ✅ Ensure driver is still listed even if no players
-
-            # ✅ Ensure we are actually assigning players
-            if not assignments:
-                st.warning("⚠️ 割り当てに失敗しました。もう一度お試しください。")
-            else:
-                # ---- 結果表示 (Show Results) ----
-                st.subheader("📝 割り当て結果")
-
-                for driver, players in assignments.items():
-                    st.markdown(f"🚗 **{driver} の車** ({driver_capacities[driver]}人乗り)")
-                    if players:
-                        for player in players:
-                            st.write(f"- {player}")
-                    else:
-                        st.write("❌ 割り当てなし")
-
-                # Warn if players remain unassigned
                 if player_queue:
-                    st.warning(f"⚠️ 割り当てできなかった選手: {', '.join(player_queue)}")
+                    assigned_players = player_queue[:min(len(player_queue), capacity)]
+                    assignments[driver] = assigned_players
+                    player_queue = player_queue[len(assigned_players):]  # ✅ Remove assigned players
+
+            # ✅ Debug: Print final assignments
+            st.write(f"📋 割り当て結果: {assignments}")
+
+            # ---- 結果表示 (Show Results) ----
+            st.subheader("📝 割り当て結果")
+
+            for driver, players in assignments.items():
+                st.markdown(f"🚗 **{driver} の車** ({driver_capacities[driver]}人乗り)")
+                if players:
+                    for player in players:
+                        st.write(f"- {player}")
+                else:
+                    st.write("❌ 割り当てなし")
+
+            # Warn if players remain unassigned
+            if player_queue:
+                st.warning(f"⚠️ 割り当てできなかった選手: {', '.join(player_queue)}")
