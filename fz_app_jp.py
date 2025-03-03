@@ -423,7 +423,7 @@ with tab2:
     # ---- 出席確認 (Player Attendance) ----
     st.subheader("👥 出席確認（チェックを入れてください）")
 
-    # ✅ Store selections in session_state but don't update in real-time
+    # ✅ Ensure selections persist
     if "selected_players" not in st.session_state:
         st.session_state.selected_players = set()
 
@@ -443,7 +443,7 @@ with tab2:
                 checked = player['名前'] in temp_selected_players
                 new_value = st.checkbox(f"{player['名前']}（{player['学年']}年）", value=checked, key=key)
 
-                # ✅ Store selection in temp set, not session_state (avoids flickering)
+                # ✅ Store selection in temp set, not session_state (avoids flickering & reset)
                 if new_value:
                     temp_selected_players.add(player['名前'])
                 else:
@@ -451,7 +451,7 @@ with tab2:
 
         # ✅ Apply changes to session_state *only after all selections are made*
         if st.button("確定", key="confirm_players"):
-            st.session_state.selected_players = temp_selected_players
+            st.session_state.selected_players = temp_selected_players.copy()  # ✅ Copy to session_state properly
             st.success("✅ 選手が確定されました")
     else:
         st.warning("⚠️ 選手データがありません。")
@@ -459,7 +459,7 @@ with tab2:
     # ---- 運転手選択 (Driver Selection) ----
     st.subheader("🚘 運転手（チェックを入れてください）")
 
-    # ✅ Store driver selections in session_state but don't update in real-time
+    # ✅ Ensure driver selections persist
     if "selected_drivers" not in st.session_state:
         st.session_state.selected_drivers = set()
 
@@ -484,7 +484,7 @@ with tab2:
 
         # ✅ Apply changes to session_state *only after all selections are made*
         if st.button("確定", key="confirm_drivers"):
-            st.session_state.selected_drivers = temp_selected_drivers
+            st.session_state.selected_drivers = temp_selected_drivers.copy()  # ✅ Copy to session_state properly
             st.success("✅ 運転手が確定されました")
     else:
         st.warning("⚠️ 運転手データがありません。")
@@ -495,7 +495,7 @@ with tab2:
     # ---- 自動割り当てボタン ----
     if st.button("🖱️ 自動割り当て"):
         if not st.session_state.selected_players or not st.session_state.selected_drivers:
-            st.warning("選手と運転手を選択してください！")
+            st.warning("⚠️ 選手と運転手を選択してください！")  # ✅ Fixes issue of missing selections
         else:
             # Parse selected players and drivers
             selected_player_list = list(st.session_state.selected_players)
@@ -530,3 +530,4 @@ with tab2:
             # Warn if players remain unassigned
             if player_queue:
                 st.warning(f"⚠️ 割り当てできなかった選手: {', '.join(player_queue)}")
+
