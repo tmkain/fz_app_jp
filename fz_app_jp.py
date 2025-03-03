@@ -46,7 +46,8 @@ gmaps = googlemaps.Client(key=API_KEY)
 # Google Sheets Authentication (Cached)
 # ==============================
 SHEET_ID = "1upehCYwnGEcKg_zVQG7jlnNUykFmvNbuAtnxzqvSEcA"
-SHEET_NAME = "Sheet1"
+SHEET_NAME_1 = "Sheet1"
+SHEET_NAME_2 = "Sheet2"
 
 @st.cache_resource
 def get_google_sheet():
@@ -54,22 +55,27 @@ def get_google_sheet():
     if creds_json:
         creds_dict = json.loads(creds_json)
         creds = Credentials.from_service_account_info(creds_dict, scopes=["https://www.googleapis.com/auth/spreadsheets"])
-        return gspread.authorize(creds).open_by_key(SHEET_ID).worksheet(SHEET_NAME)
+        client = gspread.authorize(creds)
+        spreadsheet = client.open_by_key(SHEET_ID)
+        return spreadsheet.worksheet(SHEET_NAME_1), spreadsheet.worksheet(SHEET_NAME_2)
     else:
         raise ValueError("GOOGLE_CREDENTIALS environment variable not found")
 
-sheet = get_google_sheet()
+sheet1, sheet2 = get_google_sheet()
 
-def ensure_sheet_headers():
+def ensure_sheet_headers(sheet, headers):
     # Get all values from the sheet
     existing_data = sheet.get_all_values()
 
     # If the sheet is completely empty, add headers
     if not existing_data or len(existing_data) < 1:
-        headers = [["日付", "名前", "金額", "高速道路", "補足"]]
+        headers_sheet1 = [["日付", "名前", "金額", "高速道路", "補足"]]
+        headers_sheet2 = [["名前", "学年", "運転手", "定員"] # Car Assignments
         sheet.append_rows(headers, value_input_option="USER_ENTERED")
 
-ensure_sheet_headers()
+# Apply headers check
+ensure_sheet_headers(sheet1, headers_sheet1)
+ensure_sheet_headers(sheet2, headers_sheet2)
 
 # ==============================
 # Initialize Session State
