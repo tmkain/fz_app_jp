@@ -421,33 +421,35 @@ with tab2:
         df_sheet2 = pd.DataFrame(columns=["名前", "学年", "運転手", "定員"])  # ✅ Ensure correct columns
 
     # ---- 出席確認 (Player Attendance) ----
-    st.subheader("👥 出席確認（選択してください）")
+    st.subheader("👥 出席確認（チェックを入れてください）")
+    selected_players = set()  # ✅ Use a set to store selected players
+
     if not df_sheet2.empty:
         players = df_sheet2[['名前', '学年']].dropna().to_dict(orient="records")
+        player_columns = st.columns(2)  # ✅ Arrange checkboxes in 2 columns
+        for i, player in enumerate(players):
+            with player_columns[i % 2]:  # ✅ Distribute checkboxes across two columns
+                if st.checkbox(f"{player['名前']}（{player['学年']}年）", key=f"player_{player['名前']}"):
+                    selected_players.add(player['名前'])
     else:
-        players = []  # ✅ Handle empty sheet
-
-    selected_players = st.multiselect(
-        "出席する選手を選択してください:", 
-        [f"{p['名前']}（{p['学年']}年）" for p in players], 
-        default=[]
-    )
+        st.warning("⚠️ 選手データがありません。")
 
     # ---- 運転手選択 (Driver Selection) ----
-    st.subheader("🚘 運転手（選択してください）")
+    st.subheader("🚘 運転手（チェックを入れてください）")
+    selected_drivers = set()  # ✅ Use a set to store selected drivers
+
     if not df_sheet2.empty:
         drivers = df_sheet2[['運転手', '定員']].dropna().to_dict(orient="records")
+        driver_columns = st.columns(2)  # ✅ Arrange checkboxes in 2 columns
+        for i, driver in enumerate(drivers):
+            with driver_columns[i % 2]:  # ✅ Distribute checkboxes across two columns
+                if st.checkbox(f"{driver['運転手']}（{driver['定員']}人乗り）", key=f"driver_{driver['運転手']}"):
+                    selected_drivers.add(driver['運転手'])
     else:
-        drivers = []  # ✅ Handle empty sheet
-
-    selected_drivers = st.multiselect(
-        "利用可能な運転手を選択してください:", 
-        [f"{d['運転手']}（{d['定員']}人乗り）" for d in drivers], 
-        default=[]
-    )
+        st.warning("⚠️ 運転手データがありません。")
 
     # ---- 最大車両数設定 (Max Cars Allowed) ----
-    max_cars = st.number_input("🔢 最大車両数:", min_value=1, max_value=len(drivers), value=len(drivers))
+    max_cars = st.number_input("🔢 最大車両数:", min_value=1, max_value=len(drivers), value=10)  # ✅ Default is now 10
 
     # ---- 自動割り当てボタン ----
     if st.button("🖱️ 自動割り当て"):
@@ -455,8 +457,8 @@ with tab2:
             st.warning("選手と運転手を選択してください！")
         else:
             # Parse selected players and drivers
-            selected_player_list = [p.split("（")[0] for p in selected_players]
-            selected_driver_list = [d.split("（")[0] for d in selected_drivers]
+            selected_player_list = list(selected_players)
+            selected_driver_list = list(selected_drivers)
 
             # Sort players by grade level
             grade_5 = [p for p in selected_player_list if "5年" in p]
@@ -487,5 +489,3 @@ with tab2:
             # Warn if players remain unassigned
             if player_queue:
                 st.warning(f"⚠️ 割り当てできなかった選手: {', '.join(player_queue)}")
-
-
