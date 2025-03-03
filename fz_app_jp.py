@@ -423,38 +423,47 @@ with tab2:
     # ---- 出席確認 (Player Attendance) ----
     st.subheader("👥 出席確認（チェックを入れてください）")
 
-    # ✅ Store selections in session_state to prevent flickering
+    # ✅ Store selections in session_state but don't update in real-time
     if "selected_players" not in st.session_state:
         st.session_state.selected_players = set()
+
+    temp_selected_players = set(st.session_state.selected_players)  # ✅ Temporary copy
 
     if not df_sheet2.empty:
         players = df_sheet2[['名前', '学年']].dropna().to_dict(orient="records")
 
         # ✅ "Select All" button (全員選択)
         if st.button("全員選択"):
-            st.session_state.selected_players = {p["名前"] for p in players}  # ✅ Select all players
+            temp_selected_players = {p["名前"] for p in players}  # ✅ Select all players
         
         player_columns = st.columns(2)  # ✅ Arrange checkboxes in 2 columns
         for i, player in enumerate(players):
             with player_columns[i % 2]:  # ✅ Distribute checkboxes across two columns
                 key = f"player_{player['名前'].replace(' ', '_')}"  # ✅ Ensure unique key
-                checked = player['名前'] in st.session_state.selected_players
+                checked = player['名前'] in temp_selected_players
                 new_value = st.checkbox(f"{player['名前']}（{player['学年']}年）", value=checked, key=key)
 
-                # ✅ Only update session state when the value changes
+                # ✅ Store selection in temp set, not session_state (avoids flickering)
                 if new_value:
-                    st.session_state.selected_players.add(player['名前'])
+                    temp_selected_players.add(player['名前'])
                 else:
-                    st.session_state.selected_players.discard(player['名前'])
+                    temp_selected_players.discard(player['名前'])
+
+        # ✅ Apply changes to session_state *only after all selections are made*
+        if st.button("確定"):
+            st.session_state.selected_players = temp_selected_players
+            st.success("✅ 選手が確定されました")
     else:
         st.warning("⚠️ 選手データがありません。")
 
     # ---- 運転手選択 (Driver Selection) ----
     st.subheader("🚘 運転手（チェックを入れてください）")
 
-    # ✅ Store driver selections in session_state to prevent flickering
+    # ✅ Store driver selections in session_state but don't update in real-time
     if "selected_drivers" not in st.session_state:
         st.session_state.selected_drivers = set()
+
+    temp_selected_drivers = set(st.session_state.selected_drivers)  # ✅ Temporary copy
 
     if not df_sheet2.empty:
         drivers = df_sheet2[['運転手', '定員']].dropna().to_dict(orient="records")
@@ -462,15 +471,20 @@ with tab2:
         driver_columns = st.columns(2)  # ✅ Arrange checkboxes in 2 columns
         for i, driver in enumerate(drivers):
             with driver_columns[i % 2]:  # ✅ Distribute checkboxes across two columns
-                key = f"driver_{driver['運転手'].replace(' ', '_')}"  # ✅ Ensure unique key
-                checked = driver['運転手'] in st.session_state.selected_drivers
+                key = f"driver_{driver['運転手'].replace(' ', '_')}_{i}"  # ✅ Ensure unique key
+                checked = driver['運転手'] in temp_selected_drivers
                 new_value = st.checkbox(f"{driver['運転手']}（{driver['定員']}人乗り）", value=checked, key=key)
 
-                # ✅ Only update session state when the value changes
+                # ✅ Store selection in temp set, not session_state (avoids flickering)
                 if new_value:
-                    st.session_state.selected_drivers.add(driver['運転手'])
+                    temp_selected_drivers.add(driver['運転手'])
                 else:
-                    st.session_state.selected_drivers.discard(driver['運転手'])
+                    temp_selected_drivers.discard(driver['運転手'])
+
+        # ✅ Apply changes to session_state *only after all selections are made*
+        if st.button("確定"):
+            st.session_state.selected_drivers = temp_selected_drivers
+            st.success("✅ 運転手が確定されました")
     else:
         st.warning("⚠️ 運転手データがありません。")
 
@@ -515,4 +529,3 @@ with tab2:
             # Warn if players remain unassigned
             if player_queue:
                 st.warning(f"⚠️ 割り当てできなかった選手: {', '.join(player_queue)}")
-
