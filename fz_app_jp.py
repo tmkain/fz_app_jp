@@ -517,6 +517,24 @@ if sheet2_data:
 else:
     df_sheet2 = pd.DataFrame(columns=["名前", "学年", "運転手", "定員"])  # ✅ Ensure correct columns
 
+import time
+
+# ---- Google Sheets Data Caching ----
+def load_google_sheet_data():
+    """Loads Google Sheet data only when necessary to avoid API rate limits."""
+    if "sheet2_data" not in st.session_state or time.time() - st.session_state["last_fetch_time"] > 60:
+        sheet2_data = sheet2.get_all_values()
+        st.session_state["sheet2_data"] = sheet2_data
+        st.session_state["last_fetch_time"] = time.time()  # ✅ Store last refresh time
+    return st.session_state["sheet2_data"]
+
+# ✅ Load Google Sheets data efficiently
+sheet2_data = load_google_sheet_data()
+if sheet2_data:
+    df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0])  # ✅ Convert to DataFrame
+else:
+    df_sheet2 = pd.DataFrame(columns=["名前", "学年", "運転手", "定員"])  # ✅ Ensure correct columns
+
 # ---- TAB 2: 車両割り当て (New Player-to-Car Assignment) ----
 with tab2:
     st.subheader("🎯 車両割り当てシステム")
@@ -613,17 +631,21 @@ with tab2:
                 else:
                     assignments[driver] = []  # ✅ Ensure driver is still listed even if no players
 
-            # ---- 結果表示 (Show Results) ----
-            st.subheader("📝 割り当て結果")
+            # ✅ Ensure we are actually assigning players
+            if not assignments:
+                st.warning("⚠️ 割り当てに失敗しました。もう一度お試しください。")
+            else:
+                # ---- 結果表示 (Show Results) ----
+                st.subheader("📝 割り当て結果")
 
-            for driver, players in assignments.items():
-                st.markdown(f"🚗 **{driver} の車** ({driver_capacities[driver]}人乗り)")
-                if players:
-                    for player in players:
-                        st.write(f"- {player}")
-                else:
-                    st.write("❌ 割り当てなし")
+                for driver, players in assignments.items():
+                    st.markdown(f"🚗 **{driver} の車** ({driver_capacities[driver]}人乗り)")
+                    if players:
+                        for player in players:
+                            st.write(f"- {player}")
+                    else:
+                        st.write("❌ 割り当てなし")
 
-            # Warn if players remain unassigned
-            if player_queue:
-                st.warning(f"⚠️ 割り当てできなかった選手: {', '.join(player_queue)}")
+                # Warn if players remain unassigned
+                if player_queue:
+                    st.warning(f"⚠️ 割り当てできなかった選手: {', '.join(player_queue)}")
