@@ -499,6 +499,24 @@ if sheet2_data:
 else:
     df_sheet2 = pd.DataFrame(columns=["名前", "学年", "運転手", "定員"])  # ✅ Ensure correct columns
 
+import time
+
+# ---- Google Sheets Data Caching ----
+def load_google_sheet_data():
+    """Loads Google Sheet data only when necessary to avoid API rate limits."""
+    if "sheet2_data" not in st.session_state or time.time() - st.session_state["last_fetch_time"] > 60:
+        sheet2_data = sheet2.get_all_values()
+        st.session_state["sheet2_data"] = sheet2_data
+        st.session_state["last_fetch_time"] = time.time()  # ✅ Store last refresh time
+    return st.session_state["sheet2_data"]
+
+# ✅ Load Google Sheets data efficiently
+sheet2_data = load_google_sheet_data()
+if sheet2_data:
+    df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0])  # ✅ Convert to DataFrame
+else:
+    df_sheet2 = pd.DataFrame(columns=["名前", "学年", "運転手", "定員"])  # ✅ Ensure correct columns
+
 # ---- TAB 2: 車両割り当て (New Player-to-Car Assignment) ----
 with tab2:
     st.subheader("🎯 車両割り当てシステム")
@@ -530,7 +548,6 @@ with tab2:
                 else:
                     st.session_state.selected_players.discard(player['名前'])
 
-        # ✅ Remove "確定" button—session state updates live now
     else:
         st.warning("⚠️ 選手データがありません。")
 
@@ -558,7 +575,6 @@ with tab2:
                 else:
                     st.session_state.selected_drivers.discard(driver['運転手'])
 
-        # ✅ Remove "確定" button—session state updates live now
     else:
         st.warning("⚠️ 運転手データがありません。")
 
@@ -590,25 +606,24 @@ with tab2:
             player_queue = grade_5 + grade_6  # Prioritize grade grouping
 
             for driver, capacity in sorted_drivers:
-                assigned_players = player_queue[:capacity]
-                assignments[driver] = assigned_players
-                player_queue = player_queue[capacity:]
+                if player_queue:  # ✅ Ensure we only assign if there are players left
+                    assigned_players = player_queue[:capacity]
+                    assignments[driver] = assigned_players
+                    player_queue = player_queue[capacity:]  # ✅ Remove assigned players from queue
+                else:
+                    assignments[driver] = []  # ✅ Ensure driver is still listed even if no players
 
             # ---- 結果表示 (Show Results) ----
             st.subheader("📝 割り当て結果")
 
-            if assignments:
-                for driver, players in assignments.items():
-                    st.markdown(f"🚗 **{driver} の車** ({driver_capacities[driver]}人乗り)")
-                    if players:
-                        for player in players:
-                            st.write(f"- {player}")
-                    else:
-                        st.write("❌ 割り当てなし")
-            else:
-                st.warning("⚠️ 割り当て可能な選手がいません。")
+            for driver, players in assignments.items():
+                st.markdown(f"🚗 **{driver} の車** ({driver_capacities[driver]}人乗り)")
+                if players:
+                    for player in players:
+                        st.write(f"- {player}")
+                else:
+                    st.write("❌ 割り当てなし")
 
             # Warn if players remain unassigned
             if player_queue:
                 st.warning(f"⚠️ 割り当てできなかった選手: {', '.join(player_queue)}")
-
