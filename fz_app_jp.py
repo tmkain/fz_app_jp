@@ -71,17 +71,19 @@ def get_google_sheets():
 # ✅ Load both sheets once (no duplicates!)
 sheet1, sheet2 = get_google_sheets()
 
+# ✅ Define headers correctly (not nested lists)
+headers_sheet1 = ["日付", "名前", "金額", "高速道路", "補足"]  # Sheet1: 車代管理
+headers_sheet2 = ["名前", "学年", "運転手", "定員"]  # Sheet2: 車両割り当て
+
 def ensure_sheet_headers(sheet, headers):
     # Get all values from the sheet
     existing_data = sheet.get_all_values()
 
     # If the sheet is completely empty, add headers
     if not existing_data or len(existing_data) < 1:
-        headers_sheet1 = [["日付", "名前", "金額", "高速道路", "補足"]]
-        headers_sheet2 = [["名前", "学年", "運転手", "定員"]] # Car Assignments
-        sheet.append_row(headers[0], value_input_option="USER_ENTERED")  # ✅ Use append_row() with a single list
+        sheet.append_row(headers, value_input_option="USER_ENTERED")  # ✅ Use append_row() directly
 
-# Apply headers check
+# ✅ Apply headers check
 ensure_sheet_headers(sheet1, headers_sheet1)
 ensure_sheet_headers(sheet2, headers_sheet2)
 
