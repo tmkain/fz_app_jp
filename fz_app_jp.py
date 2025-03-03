@@ -422,29 +422,46 @@ with tab2:
 
     # ---- 出席確認 (Player Attendance) ----
     st.subheader("👥 出席確認（チェックを入れてください）")
-    selected_players = set()  # ✅ Use a set to store selected players
+
+    # ✅ Store selections in session_state to prevent page refresh
+    if "selected_players" not in st.session_state:
+        st.session_state.selected_players = set()
 
     if not df_sheet2.empty:
         players = df_sheet2[['名前', '学年']].dropna().to_dict(orient="records")
+
+        # ✅ "Select All" button (全員選択)
+        if st.button("全員選択"):
+            st.session_state.selected_players = {p["名前"] for p in players}  # ✅ Select all players
+        
         player_columns = st.columns(2)  # ✅ Arrange checkboxes in 2 columns
         for i, player in enumerate(players):
             with player_columns[i % 2]:  # ✅ Distribute checkboxes across two columns
-                if st.checkbox(f"{player['名前']}（{player['学年']}年）", key=f"player_{player['名前']}"):
-                    selected_players.add(player['名前'])
+                checked = player['名前'] in st.session_state.selected_players
+                if st.checkbox(f"{player['名前']}（{player['学年']}年）", value=checked, key=f"player_{player['名前']}"):
+                    st.session_state.selected_players.add(player['名前'])
+                else:
+                    st.session_state.selected_players.discard(player['名前'])  # ✅ Remove if unchecked
     else:
         st.warning("⚠️ 選手データがありません。")
 
     # ---- 運転手選択 (Driver Selection) ----
     st.subheader("🚘 運転手（チェックを入れてください）")
-    selected_drivers = set()  # ✅ Use a set to store selected drivers
+
+    if "selected_drivers" not in st.session_state:
+        st.session_state.selected_drivers = set()
 
     if not df_sheet2.empty:
         drivers = df_sheet2[['運転手', '定員']].dropna().to_dict(orient="records")
+
         driver_columns = st.columns(2)  # ✅ Arrange checkboxes in 2 columns
         for i, driver in enumerate(drivers):
             with driver_columns[i % 2]:  # ✅ Distribute checkboxes across two columns
-                if st.checkbox(f"{driver['運転手']}（{driver['定員']}人乗り）", key=f"driver_{driver['運転手']}"):
-                    selected_drivers.add(driver['運転手'])
+                checked = driver['運転手'] in st.session_state.selected_drivers
+                if st.checkbox(f"{driver['運転手']}（{driver['定員']}人乗り）", value=checked, key=f"driver_{driver['運転手']}"):
+                    st.session_state.selected_drivers.add(driver['運転手'])
+                else:
+                    st.session_state.selected_drivers.discard(driver['運転手'])  # ✅ Remove if unchecked
     else:
         st.warning("⚠️ 運転手データがありません。")
 
@@ -453,12 +470,12 @@ with tab2:
 
     # ---- 自動割り当てボタン ----
     if st.button("🖱️ 自動割り当て"):
-        if not selected_players or not selected_drivers:
+        if not st.session_state.selected_players or not st.session_state.selected_drivers:
             st.warning("選手と運転手を選択してください！")
         else:
             # Parse selected players and drivers
-            selected_player_list = list(selected_players)
-            selected_driver_list = list(selected_drivers)
+            selected_player_list = list(st.session_state.selected_players)
+            selected_driver_list = list(st.session_state.selected_drivers)
 
             # Sort players by grade level
             grade_5 = [p for p in selected_player_list if "5年" in p]
@@ -489,3 +506,4 @@ with tab2:
             # Warn if players remain unassigned
             if player_queue:
                 st.warning(f"⚠️ 割り当てできなかった選手: {', '.join(player_queue)}")
+
