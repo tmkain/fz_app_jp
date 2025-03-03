@@ -66,15 +66,10 @@ def get_google_sheets():
     except gspread.WorksheetNotFound:
         raise ValueError(f"🚨 Worksheet '{SHEET_NAME_1}' or '{SHEET_NAME_2}' not found in Google Sheet.")
 
-    return sheet1, sheet2
+    return sheet1, sheet2  # ✅ Ensure correct return
 
-# ✅ Correctly load both sheets
+# ✅ Load both sheets once (no duplicates!)
 sheet1, sheet2 = get_google_sheets()
-
-    else:
-        raise ValueError("GOOGLE_CREDENTIALS environment variable not found")
-
-sheet1, sheet2 = get_google_sheet()
 
 def ensure_sheet_headers(sheet, headers):
     # Get all values from the sheet
