@@ -236,7 +236,7 @@ with tab1:
     # Save Data to Google Sheets
     # ==============================
     def append_data(new_entries):
-        sheet.append_rows(new_entries, value_input_option="USER_ENTERED")
+        sheet1.append_rows(new_entries, value_input_option="USER_ENTERED")
     
     if st.button("送信", key="submit_button"):  
         if st.session_state.selected_drivers:
@@ -279,7 +279,7 @@ with tab1:
             st.rerun()
     
     def load_from_sheets():
-        records = sheet.get_all_values()
+        records = sheet1.get_all_values()
     
         required_columns = ["日付", "名前", "金額", "高速道路", "補足"]
     
@@ -304,7 +304,7 @@ with tab1:
     # ==============================
     st.header("📊 月ごとの集計")
     
-    df = pd.DataFrame(sheet.get_all_records())
+    df = pd.DataFrame(sheet1.get_all_records())
     
     if df.empty:
         st.warning("データがありません。")
@@ -367,7 +367,7 @@ with tab1:
     # ✅ Update Google Sheets when "更新" button is clicked
     if st.button("更新", key="update_pending"):
         if len(updated_values) > 0:  # ✅ Ensure `updated_values` exists before proceeding
-            all_records = sheet.get_all_values()
+            all_records = sheet1.get_all_values()
     
             for i, row in enumerate(all_records):
                 if i == 0:
@@ -383,8 +383,8 @@ with tab1:
                     # ✅ Compare cleaned values
                     if row_date_clean == formatted_index_clean and row_driver_clean == col:
                         # ✅ Update 金額 column
-                        sheet.update_cell(i + 1, 3, new_value)  # ✅ Update "金額" (Column C)
-                        sheet.update_cell(i + 1, 5, "")  # ✅ Clear "補足" (Column E)
+                        sheet1.update_cell(i + 1, 3, new_value)  # ✅ Update "金額" (Column C)
+                        sheet1.update_cell(i + 1, 5, "")  # ✅ Clear "補足" (Column E)
             
             st.success("✅ 高速料金が更新されました！")
             st.rerun()  # ✅ Instant refresh to update the displayed table
@@ -412,10 +412,21 @@ with tab1:
 # ---- TAB 2: 車両割り当て (New Player-to-Car Assignment) ----
 with tab2:
     st.subheader("🎯 車両割り当てシステム")
-    
+
+    # ✅ Load data from sheet2 (Car Assignments)
+    sheet2_data = sheet2.get_all_values()
+    if sheet2_data:
+        df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0])  # ✅ Convert to DataFrame
+    else:
+        df_sheet2 = pd.DataFrame(columns=["名前", "学年", "運転手", "定員"])  # ✅ Ensure correct columns
+
     # ---- 出席確認 (Player Attendance) ----
     st.subheader("👥 出席確認（選択してください）")
-    players = df[['名前', '学年']].dropna().to_dict(orient="records")
+    if not df_sheet2.empty:
+        players = df_sheet2[['名前', '学年']].dropna().to_dict(orient="records")
+    else:
+        players = []  # ✅ Handle empty sheet
+
     selected_players = st.multiselect(
         "出席する選手を選択してください:", 
         [f"{p['名前']}（{p['学年']}年）" for p in players], 
@@ -424,10 +435,11 @@ with tab2:
 
     # ---- 運転手選択 (Driver Selection) ----
     st.subheader("🚘 運転手（選択してください）")
-    if not df.empty:
-        drivers = df[['運転手', '定員']].dropna().to_dict(orient="records")
+    if not df_sheet2.empty:
+        drivers = df_sheet2[['運転手', '定員']].dropna().to_dict(orient="records")
     else:
-        drivers = []  # ✅ Return an empty list if no data
+        drivers = []  # ✅ Handle empty sheet
+
     selected_drivers = st.multiselect(
         "利用可能な運転手を選択してください:", 
         [f"{d['運転手']}（{d['定員']}人乗り）" for d in drivers], 
@@ -471,8 +483,9 @@ with tab2:
                 st.markdown(f"🚗 **{driver} の車** ({driver_capacities[driver]}人乗り)")
                 for player in players:
                     st.write(f"- {player}")
-            
+
             # Warn if players remain unassigned
             if player_queue:
                 st.warning(f"⚠️ 割り当てできなかった選手: {', '.join(player_queue)}")
+
 
