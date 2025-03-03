@@ -463,6 +463,24 @@ if sheet2_data:
 else:
     df_sheet2 = pd.DataFrame(columns=["名前", "学年", "運転手", "定員"])  # ✅ Ensure correct columns
 
+import time
+
+# ---- Google Sheets Data Caching ----
+def load_google_sheet_data():
+    """Loads Google Sheet data only when necessary to avoid API rate limits."""
+    if "sheet2_data" not in st.session_state or time.time() - st.session_state["last_fetch_time"] > 60:
+        sheet2_data = sheet2.get_all_values()
+        st.session_state["sheet2_data"] = sheet2_data
+        st.session_state["last_fetch_time"] = time.time()  # ✅ Store last refresh time
+    return st.session_state["sheet2_data"]
+
+# ✅ Load Google Sheets data efficiently
+sheet2_data = load_google_sheet_data()
+if sheet2_data:
+    df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0])  # ✅ Convert to DataFrame
+else:
+    df_sheet2 = pd.DataFrame(columns=["名前", "学年", "運転手", "定員"])  # ✅ Ensure correct columns
+
 # ---- TAB 2: 車両割り当て (New Player-to-Car Assignment) ----
 with tab2:
     st.subheader("🎯 車両割り当てシステム")
@@ -474,32 +492,27 @@ with tab2:
     if "selected_players" not in st.session_state:
         st.session_state.selected_players = set()
 
-    temp_selected_players = set(st.session_state.selected_players)  # ✅ Temporary copy
-
     if not df_sheet2.empty:
         players = df_sheet2[['名前', '学年']].dropna().to_dict(orient="records")
 
-        # ✅ "Select All" button (全員選択)
+        # ✅ Handle "全員選択" properly by updating session state immediately
         if st.button("全員選択", key="select_all_players"):
-            temp_selected_players = {p["名前"] for p in players}  # ✅ Select all players
-        
+            st.session_state.selected_players = {p["名前"] for p in players}  # ✅ Update session state immediately
+
         player_columns = st.columns(2)  # ✅ Arrange checkboxes in 2 columns
         for i, player in enumerate(players):
             with player_columns[i % 2]:  # ✅ Distribute checkboxes across two columns
                 key = f"player_{player['名前'].replace(' ', '_')}"  # ✅ Ensure unique key
-                checked = player['名前'] in temp_selected_players
+                checked = player['名前'] in st.session_state.selected_players
                 new_value = st.checkbox(f"{player['名前']}（{player['学年']}年）", value=checked, key=key)
 
-                # ✅ Store selection in temp set, not session_state (avoids flickering & reset)
+                # ✅ Update session state directly when checkbox is toggled
                 if new_value:
-                    temp_selected_players.add(player['名前'])
+                    st.session_state.selected_players.add(player['名前'])
                 else:
-                    temp_selected_players.discard(player['名前'])
+                    st.session_state.selected_players.discard(player['名前'])
 
-        # ✅ Apply changes to session_state *only after all selections are made*
-        if st.button("確定", key="confirm_players"):
-            st.session_state.selected_players = temp_selected_players.union(st.session_state.selected_players)  # ✅ Merge selections
-            st.success("✅ 選手が確定されました")
+        # ✅ Remove "確定" button—session state updates live now
     else:
         st.warning("⚠️ 選手データがありません。")
 
@@ -510,8 +523,6 @@ with tab2:
     if "selected_drivers" not in st.session_state:
         st.session_state.selected_drivers = set()
 
-    temp_selected_drivers = set(st.session_state.selected_drivers)  # ✅ Temporary copy
-
     if not df_sheet2.empty:
         # ✅ Remove blank rows from the driver list
         drivers = [d for d in df_sheet2[['運転手', '定員']].dropna().to_dict(orient="records") if d["運転手"] and d["定員"]]
@@ -520,19 +531,16 @@ with tab2:
         for i, driver in enumerate(drivers):
             with driver_columns[i % 2]:  # ✅ Distribute checkboxes across two columns
                 key = f"driver_{driver['運転手'].replace(' ', '_')}_{i}"  # ✅ Ensure unique key
-                checked = driver['運転手'] in temp_selected_drivers
+                checked = driver['運転手'] in st.session_state.selected_drivers
                 new_value = st.checkbox(f"{driver['運転手']}（{driver['定員']}人乗り）", value=checked, key=key)
 
-                # ✅ Store selection in temp set, not session_state (avoids flickering)
+                # ✅ Update session state directly when checkbox is toggled
                 if new_value:
-                    temp_selected_drivers.add(driver['運転手'])
+                    st.session_state.selected_drivers.add(driver['運転手'])
                 else:
-                    temp_selected_drivers.discard(driver['運転手'])
+                    st.session_state.selected_drivers.discard(driver['運転手'])
 
-        # ✅ Apply changes to session_state *only after all selections are made*
-        if st.button("確定", key="confirm_drivers"):
-            st.session_state.selected_drivers = temp_selected_drivers.union(st.session_state.selected_drivers)  # ✅ Merge selections
-            st.success("✅ 運転手が確定されました")
+        # ✅ Remove "確定" button—session state updates live now
     else:
         st.warning("⚠️ 運転手データがありません。")
 
