@@ -409,16 +409,27 @@ with tab1:
         st.success("✅ ログアウトしました。")
         st.rerun()
 
+import time
+
+# ---- Google Sheets Data Caching ----
+def load_google_sheet_data():
+    """Loads Google Sheet data only when necessary to avoid API rate limits."""
+    if "sheet2_data" not in st.session_state or time.time() - st.session_state["last_fetch_time"] > 60:
+        sheet2_data = sheet2.get_all_values()
+        st.session_state["sheet2_data"] = sheet2_data
+        st.session_state["last_fetch_time"] = time.time()  # ✅ Store last refresh time
+    return st.session_state["sheet2_data"]
+
+# ✅ Load Google Sheets data efficiently
+sheet2_data = load_google_sheet_data()
+if sheet2_data:
+    df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0])  # ✅ Convert to DataFrame
+else:
+    df_sheet2 = pd.DataFrame(columns=["名前", "学年", "運転手", "定員"])  # ✅ Ensure correct columns
+
 # ---- TAB 2: 車両割り当て (New Player-to-Car Assignment) ----
 with tab2:
     st.subheader("🎯 車両割り当てシステム")
-
-    # ✅ Load data from sheet2 (Car Assignments)
-    sheet2_data = sheet2.get_all_values()
-    if sheet2_data:
-        df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0])  # ✅ Convert to DataFrame
-    else:
-        df_sheet2 = pd.DataFrame(columns=["名前", "学年", "運転手", "定員"])  # ✅ Ensure correct columns
 
     # ---- 出席確認 (Player Attendance) ----
     st.subheader("👥 出席確認（チェックを入れてください）")
