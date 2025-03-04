@@ -451,13 +451,22 @@ with tab2:
         for i, player in enumerate(players):
             with player_columns[i % 2]:
                 key = f"player_{player['名前'].replace(' ', '_')}"
-                checked = player['名前'] in st.session_state.selected_players
-                new_value = st.checkbox(f"{player['名前']}（{player['学年']}年）", value=checked, key=key)
+
+                # ✅ Use session_state directly instead of st.checkbox()
+                if key not in st.session_state:
+                    st.session_state[key] = player['名前'] in st.session_state.selected_players
+
+                # ✅ Store changes in session_state without triggering a rerun
+                new_value = st.checkbox(f"{player['名前']}（{player['学年']}年）", value=st.session_state[key], key=key)
 
                 if new_value:
                     st.session_state.selected_players.add(player['名前'])
                 else:
                     st.session_state.selected_players.discard(player['名前'])
+
+                # ✅ Only update session state if the value changed
+                if st.session_state[key] != new_value:
+                    st.session_state[key] = new_value
 
     else:
         st.warning("⚠️ 選手データがありません。")
@@ -524,13 +533,19 @@ with tab2:
             # ✅ Step 2: Round-Robin Assignment for Remaining Players
             driver_seats = {driver: capacity - len(assignments[driver]) for driver, capacity in sorted_drivers}
 
-            while player_queue:
-                sorted_available_drivers = sorted(driver_seats.items(), key=lambda x: x[1], reverse=True)
-                for driver, available_seats in sorted_available_drivers:
-                    if available_seats > 0 and player_queue:
-                        player = player_queue.pop(0)
-                        assignments[driver].append(player)
-                        driver_seats[driver] -= 1
+            # ✅ Calculate total available seats before assigning players
+            total_seats = sum(driver_seats.values())
+
+            if len(player_queue) > total_seats:
+                st.error(f"🚨 選手の数 ({len(player_queue)}) が座席数 ({total_seats}) を超えています！運転手を追加してください。")
+            else:
+                while player_queue:
+                    sorted_available_drivers = sorted(driver_seats.items(), key=lambda x: x[1], reverse=True)
+                    for driver, available_seats in sorted_available_drivers:
+                        if available_seats > 0 and player_queue:
+                            player = player_queue.pop(0)
+                            assignments[driver].append(player)
+                            driver_seats[driver] -= 1
 
             # ✅ Step 3: Prevent Single-Kid Cars (Redistribute If Needed)
             single_kid_cars = [d for d, p in assignments.items() if len(p) == 1]
