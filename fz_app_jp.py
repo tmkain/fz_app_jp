@@ -415,7 +415,7 @@ with tab2:
     # ---- Google Sheets Data Caching ----
     def load_google_sheet_data():
         """Loads Google Sheet data only when necessary to avoid API rate limits."""
-        if "sheet2_data" not in st.session_state or time.time() - st.session_state["last_fetch_time"] > 60:
+        if "sheet2_data" not in st.session_state or time.time() - st.session_state.get("last_fetch_time", 0) > 60:
             sheet2_data = sheet2.get_all_values()
             st.session_state["sheet2_data"] = sheet2_data
             st.session_state["last_fetch_time"] = time.time()  # ✅ Store last refresh time
@@ -510,38 +510,41 @@ with tab2:
             # ✅ Assign parent-child first
             player_parents = {p["名前"]: p["親"] for p in players if p["名前"] in selected_player_list and p.get("親") and p["親"] in selected_driver_list}
 
-            assignments = {}
-            for driver, capacity in sorted_drivers:
-                assigned_players = []
+            assignments = {driver: [] for driver, _ in sorted_drivers}  # ✅ Initialize empty assignments
 
-                # ✅ Assign child to their parent first
-                for player, parent in player_parents.items():
-                    if parent == driver and player in player_queue:
-                        assigned_players.append(player)
-                        player_queue.remove(player)
+            for player, parent in player_parents.items():
+                if parent in assignments and player in player_queue:
+                    assignments[parent].append(player)
+                    player_queue.remove(player)
 
-                # ✅ Fill remaining seats
-                while len(assigned_players) < capacity and player_queue:
-                    assigned_players.append(player_queue.pop(0))
+            # ✅ Step 2: Round-Robin Assignment for Remaining Players
+            driver_seats = {driver: capacity - len(assignments[driver]) for driver, capacity in sorted_drivers}
 
-                # ✅ Prevent single-kid cars by redistributing
-                if len(assigned_players) == 1 and len(player_queue) >= 1:
-                    assigned_players.append(player_queue.pop(0))
+            while player_queue:
+                sorted_available_drivers = sorted(driver_seats.items(), key=lambda x: x[1], reverse=True)
+                for driver, available_seats in sorted_available_drivers:
+                    if available_seats > 0 and player_queue:
+                        player = player_queue.pop(0)
+                        assignments[driver].append(player)
+                        driver_seats[driver] -= 1
 
-                assignments[driver] = assigned_players
+            # ✅ Step 3: Prevent Single-Kid Cars (Redistribute If Needed)
+            single_kid_cars = [d for d, p in assignments.items() if len(p) == 1]
+            multi_kid_cars = [d for d, p in assignments.items() if len(p) >= 3]
 
-            # ✅ Remove drivers who received no players
+            if single_kid_cars and multi_kid_cars:
+                for single_car in single_kid_cars:
+                    for multi_car in multi_kid_cars:
+                        if len(assignments[multi_car]) > 2:
+                            moved_player = assignments[multi_car].pop()
+                            assignments[single_car].append(moved_player)
+                            break
+
             assignments = {driver: players for driver, players in assignments.items() if players}
 
             # ---- 結果表示 (Show Results) ----
             st.subheader("📝 割り当て結果")
-
             for driver, players in assignments.items():
                 st.markdown(f"🚗 **{driver} の車** ({driver_capacities[driver]}人乗り)")
                 for player in players:
                     st.write(f"- {player}")
-
-            # Warn if players remain unassigned
-            if player_queue:
-                st.warning(f"⚠️ 割り当てできなかった選手: {', '.join(player_queue)}")
-
