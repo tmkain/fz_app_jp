@@ -427,22 +427,22 @@ with tab2:
 
         # ✅ "全員選択" updates checkboxes properly
         if st.button("全員選択", key="select_all_players"):
+            # ✅ Select all players
             st.session_state.selected_players = {p["名前"] for p in players}
-            st.session_state["force_rerun"] = True  # ✅ Forces rerun to update checkboxes
+            
+            # ✅ Force UI update
+            st.session_state["force_rerun"] = True
+            st.rerun()  # ✅ Forces a UI update without API errors
 
         player_columns = st.columns(2)  # ✅ Arrange checkboxes in 2 columns
         for i, player in enumerate(players):
             with player_columns[i % 2]:
                 key = f"player_{player['名前'].replace(' ', '_')}"
 
-                # ✅ Ensure initial state is set
-                if key not in st.session_state:
-                    st.session_state[key] = player['名前'] in st.session_state.selected_players
+                # ✅ Let Streamlit handle checkbox state naturally
+                new_value = st.checkbox(f"{player['名前']}（{player['学年']}年）", key=key)
 
-                # ✅ Let Streamlit manage the checkbox state naturally
-                new_value = st.checkbox(f"{player['名前']}（{player['学年']}年）", value=st.session_state[key], key=key)
-
-                # ✅ Sync checkboxes and session state
+                # ✅ Sync `selected_players` with checkbox state
                 if new_value:
                     st.session_state.selected_players.add(player['名前'])
                 else:
@@ -459,7 +459,6 @@ with tab2:
         st.session_state.selected_drivers = set()
 
     if not df_sheet2.empty:
-        # ✅ Remove blank rows from the driver list
         drivers = [d for d in df_sheet2[['運転手', '定員']].dropna().to_dict(orient="records") if d["運転手"] and d["定員"]]
 
         driver_columns = st.columns(2)  # ✅ Arrange checkboxes in 2 columns
@@ -482,7 +481,7 @@ with tab2:
     max_cars = st.number_input(
         "🔢 最大車両数:",
         min_value=1,
-        max_value=max(len(drivers), 1),  # ✅ Prevents crashing if no drivers are selected
+        max_value=max(len(st.session_state.selected_drivers), 1),  # ✅ Prevents crashing if no drivers are selected
         value=min(10, len(st.session_state.selected_drivers))
     )
 
@@ -518,31 +517,13 @@ with tab2:
             # ✅ Step 2: Round-Robin Assignment for Remaining Players
             driver_seats = {driver: capacity - len(assignments[driver]) for driver, capacity in sorted_drivers}
 
-            # ✅ Calculate total available seats before assigning players
-            total_seats = sum(driver_seats.values())
-
-            if len(player_queue) > total_seats:
-                st.error(f"🚨 選手の数 ({len(player_queue)}) が座席数 ({total_seats}) を超えています！運転手を追加してください。")
-            else:
-                while player_queue:
-                    sorted_available_drivers = sorted(driver_seats.items(), key=lambda x: x[1], reverse=True)
-                    for driver, available_seats in sorted_available_drivers:
-                        if available_seats > 0 and player_queue:
-                            player = player_queue.pop(0)
-                            assignments[driver].append(player)
-                            driver_seats[driver] -= 1
-
-            # ✅ Step 3: Prevent Single-Kid Cars (Redistribute If Needed)
-            single_kid_cars = [d for d, p in assignments.items() if len(p) == 1]
-            multi_kid_cars = [d for d, p in assignments.items() if len(p) >= 3]
-
-            if single_kid_cars and multi_kid_cars:
-                for single_car in single_kid_cars:
-                    for multi_car in multi_kid_cars:
-                        if len(assignments[multi_car]) > 2:
-                            moved_player = assignments[multi_car].pop()
-                            assignments[single_car].append(moved_player)
-                            break
+            while player_queue:
+                sorted_available_drivers = sorted(driver_seats.items(), key=lambda x: x[1], reverse=True)
+                for driver, available_seats in sorted_available_drivers:
+                    if available_seats > 0 and player_queue:
+                        player = player_queue.pop(0)
+                        assignments[driver].append(player)
+                        driver_seats[driver] -= 1
 
             assignments = {driver: players for driver, players in assignments.items() if players}
 
