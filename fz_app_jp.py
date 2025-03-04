@@ -46,8 +46,6 @@ service_account_info = dict(st.secrets["google_credentials"])
 
 service_account_info["private_key"] = service_account_info["private_key"].replace("\\n", "\n")
 
-st.write(st.secrets["google_credentials"])  # ✅ Debug to check if it's being loaded correctly
-
 google_creds = dict(st.secrets["google_credentials"])  # ✅ Ensure it's a dictionary
 creds = Credentials.from_service_account_info(service_account_info, scopes=["https://www.googleapis.com/auth/spreadsheets"])
 client = gspread.authorize(creds)
