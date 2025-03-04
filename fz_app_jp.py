@@ -43,7 +43,7 @@ gmaps = googlemaps.Client(key=API_KEY)
 # ==============================
 
 google_creds = st.secrets["google_credentials"]  # ✅ Already a dictionary
-creds = Credentials.from_service_account_info(dict(google_creds))
+creds = Credentials.from_service_account_info(google_creds)
 client = gspread.authorize(creds)
 
 SHEET_ID = "1upehCYwnGEcKg_zVQG7jlnNUykFmvNbuAtnxzqvSEcA"
