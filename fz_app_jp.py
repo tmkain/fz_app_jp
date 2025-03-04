@@ -481,7 +481,20 @@ with tab2:
     if st.button("🧹 クリア"):
         st.session_state.selected_players.clear()
         st.session_state.selected_drivers.clear()
+    
+        # ✅ Reset individual checkbox keys to force update
+        for player in df_sheet2["名前"].dropna():
+            key = f"player_{player.replace(' ', '_')}"
+            if key in st.session_state:
+                del st.session_state[key]
+    
+        for driver in df_sheet2["運転手"].dropna():
+            key = f"driver_{driver.replace(' ', '_')}"
+            if key in st.session_state:
+                del st.session_state[key]
+    
         st.success("✅ チェックボックスをリセットしました！")
+        st.rerun()  # ✅ Force UI update immediately
     
     # ---- 自動割り当てボタン ----
     if st.button("🖱️ 自動割り当て"):
