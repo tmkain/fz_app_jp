@@ -43,7 +43,7 @@ gmaps = googlemaps.Client(key=API_KEY)
 # ✅ Google Sheets Authentication (Using Streamlit Secrets)
 # ==============================
 
-google_creds = json.loads(st.secrets["google_credentials"])
+google_creds = st.secrets["google_credentials"]  # ✅ Already a dictionary
 creds = Credentials.from_service_account_info(google_creds)
 client = gspread.authorize(creds)
 
