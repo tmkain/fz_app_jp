@@ -436,7 +436,12 @@ with tab2:
 
         # ✅ Handle "全員選択" properly by updating session state immediately
         if st.button("全員選択", key="select_all_players"):
-            st.session_state.selected_players = {p["名前"] for p in players}  # ✅ Update session state immediately
+            st.session_state.selected_players = {p["名前"] for p in players}
+
+            # ✅ Also update each checkbox’s state in session_state
+            for player in players:
+                key = f"player_{player['名前'].replace(' ', '_')}"
+                st.session_state[key] = True  # ✅ Ensures checkboxes visually update
 
         player_columns = st.columns(2)  # ✅ Arrange checkboxes in 2 columns
         for i, player in enumerate(players):
