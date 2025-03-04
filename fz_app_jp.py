@@ -448,9 +448,6 @@ with tab2:
                 else:
                     st.session_state.selected_players.discard(player['名前'])
 
-                # ✅ Ensure checkboxes update visually
-                st.session_state[key] = new_value
-
     else:
         st.warning("⚠️ 選手データがありません。")
 
