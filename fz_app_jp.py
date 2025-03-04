@@ -4,6 +4,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
 import time
+import json
 import googlemaps
 
 # ==============================
@@ -42,7 +43,7 @@ gmaps = googlemaps.Client(key=API_KEY)
 # ✅ Google Sheets Authentication (Using Streamlit Secrets)
 # ==============================
 
-google_creds = st.secrets["google_credentials"]
+google_creds = json.loads(st.secrets["google_credentials"])
 creds = Credentials.from_service_account_info(google_creds)
 client = gspread.authorize(creds)
 
