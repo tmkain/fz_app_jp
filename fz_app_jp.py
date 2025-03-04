@@ -494,7 +494,6 @@ with tab2:
             # ✅ Sort drivers by capacity (largest first)
             driver_capacities = {d['運転手']: int(d['定員']) for d in drivers if d['運転手'] in selected_driver_list}
             sorted_drivers = sorted(driver_capacities.items(), key=lambda x: x[1], reverse=True)
-            sorted_drivers = sorted_drivers[:max_cars]  # ✅ Apply max car limit
 
             # ✅ Calculate total available seats before assigning players
             total_seats = sum(driver_capacities[driver] for driver in selected_driver_list)
