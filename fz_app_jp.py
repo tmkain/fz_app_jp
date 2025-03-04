@@ -424,15 +424,6 @@ with tab2:
             st.session_state["last_fetch_time"] = time.time()  # ✅ Store last refresh time
         return st.session_state["sheet2_data"]
 
-    # ✅ Load Google Sheets data efficiently
-    if st.button("✅ 確定"):
-        st.session_state["sheet2_data"] = load_google_sheet_data(force_reload=True)  # ✅ Now it only loads on confirmation
-        st.success("✅ 割り当てが確定しました！")
-    if sheet2_data:
-        df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0])  # ✅ Convert to DataFrame
-    else:
-        df_sheet2 = pd.DataFrame(columns=["名前", "学年", "運転手", "定員", "親"])  # ✅ Ensure correct columns
-
     # ---- 出席確認 (Player Attendance) ----
     st.subheader("👥 出席確認（チェックを入れてください）")
 
