@@ -436,33 +436,34 @@ with tab2:
 
         # ✅ Handle "全員選択" properly by updating session state immediately
         if st.button("全員選択", key="select_all_players"):
+            # ✅ Select all players
             st.session_state.selected_players = {p["名前"] for p in players}
-
-            # ✅ Also update each checkbox’s state in session_state
+        
+            # ✅ Update checkboxes explicitly
             for player in players:
                 key = f"player_{player['名前'].replace(' ', '_')}"
-                st.session_state[key] = True  # ✅ Ensures checkboxes visually update
+                st.session_state[key] = True  # ✅ Explicitly set the checkbox value
 
         player_columns = st.columns(2)  # ✅ Arrange checkboxes in 2 columns
         for i, player in enumerate(players):
             with player_columns[i % 2]:
                 key = f"player_{player['名前'].replace(' ', '_')}"
-
-                # ✅ Use session_state directly instead of st.checkbox()
+        
+                # ✅ Ensure checkbox syncs correctly
                 if key not in st.session_state:
                     st.session_state[key] = player['名前'] in st.session_state.selected_players
-
-                # ✅ Store changes in session_state without triggering a rerun
+        
+                # ✅ Let the checkbox control its own state, but reflect session state updates
                 new_value = st.checkbox(f"{player['名前']}（{player['学年']}年）", value=st.session_state[key], key=key)
-
+        
+                # ✅ Keep `selected_players` in sync with checkbox state
                 if new_value:
                     st.session_state.selected_players.add(player['名前'])
                 else:
                     st.session_state.selected_players.discard(player['名前'])
-
-                # ✅ Only update session state if the value changed
-                if st.session_state[key] != new_value:
-                    st.session_state[key] = new_value
+        
+                # ✅ Ensure checkboxes update visually
+                st.session_state[key] = new_value
 
     else:
         st.warning("⚠️ 選手データがありません。")
