@@ -418,23 +418,22 @@ with tab2:
     # ---- 出席確認 (Player Attendance) ----
     st.subheader("👥 出席確認（チェックを入れてください）")
 
-    # ✅ Ensure selections persist
     if "selected_players" not in st.session_state:
         st.session_state.selected_players = set()
 
     if not df_sheet2.empty:
         players = df_sheet2[['名前', '学年', '親']].dropna().to_dict(orient="records")
 
-        # ✅ "全員選択" updates checkboxes properly
+        # ✅ FIXED: Properly working "全員選択" button
         if st.button("全員選択", key="select_all_players"):
             st.session_state.selected_players = {p["名前"] for p in players}
-            st.rerun()
+            st.rerun()  # ✅ Force UI refresh to immediately reflect changes
 
         player_columns = st.columns(2)
         for i, player in enumerate(players):
             with player_columns[i % 2]:
                 key = f"player_{player['名前'].replace(' ', '_')}"
-                new_value = st.checkbox(f"{player['名前']}（{player['学年']}年）", key=key)
+                new_value = st.checkbox(f"{player['名前']}（{player['学年']}年）", value=player["名前"] in st.session_state.selected_players, key=key)
 
                 if new_value:
                     st.session_state.selected_players.add(player['名前'])
@@ -566,3 +565,4 @@ with tab2:
                 """,
                 unsafe_allow_html=True
             )
+
