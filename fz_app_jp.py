@@ -477,6 +477,12 @@ with tab2:
     else:
         st.warning("⚠️ 運転手データがありません。")
 
+    # ---- クリアボタン (Clear Selections) ----
+    if st.button("🧹 クリア"):
+        st.session_state.selected_players.clear()
+        st.session_state.selected_drivers.clear()
+        st.success("✅ チェックボックスをリセットしました！")
+    
     # ---- 自動割り当てボタン ----
     if st.button("🖱️ 自動割り当て"):
         if not st.session_state.selected_players or not st.session_state.selected_drivers:
