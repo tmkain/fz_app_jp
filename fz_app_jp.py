@@ -425,24 +425,17 @@ with tab2:
     if not df_sheet2.empty:
         players = df_sheet2[['名前', '学年', '親']].dropna().to_dict(orient="records")
 
-        # ✅ "全員選択" properly updates checkboxes
+        # ✅ "全員選択" updates checkboxes properly
         if st.button("全員選択", key="select_all_players"):
             st.session_state.selected_players = {p["名前"] for p in players}
-            st.rerun()  # ✅ Force UI update
+            st.rerun()
 
-        player_columns = st.columns(2)  # ✅ Arrange checkboxes in 2 columns
+        player_columns = st.columns(2)
         for i, player in enumerate(players):
             with player_columns[i % 2]:
                 key = f"player_{player['名前'].replace(' ', '_')}"
+                new_value = st.checkbox(f"{player['名前']}（{player['学年']}年）", key=key)
 
-                # ✅ Ensure checkbox state is controlled by session state
-                new_value = st.checkbox(
-                    f"{player['名前']}（{player['学年']}年）",
-                    key=key,
-                    value=player['名前'] in st.session_state.selected_players
-                )
-
-                # ✅ Sync `selected_players` with checkbox state
                 if new_value:
                     st.session_state.selected_players.add(player['名前'])
                 else:
@@ -454,21 +447,19 @@ with tab2:
     # ---- 運転手選択 (Driver Selection) ----
     st.subheader("🚘 運転手（チェックを入れてください）")
 
-    # ✅ Ensure driver selections persist
     if "selected_drivers" not in st.session_state:
         st.session_state.selected_drivers = set()
 
     if not df_sheet2.empty:
         drivers = [d for d in df_sheet2[['運転手', '定員']].dropna().to_dict(orient="records") if d["運転手"] and d["定員"]]
 
-        driver_columns = st.columns(2)  # ✅ Arrange checkboxes in 2 columns
+        driver_columns = st.columns(2)
         for i, driver in enumerate(drivers):
             with driver_columns[i % 2]:
-                key = f"driver_{driver['運転手'].replace(' ', '_')}_{i}"  # ✅ Ensure unique key
+                key = f"driver_{driver['運転手'].replace(' ', '_')}_{i}"
                 checked = driver['運転手'] in st.session_state.selected_drivers
                 new_value = st.checkbox(f"{driver['運転手']}（{driver['定員']}人乗り）", value=checked, key=key)
 
-                # ✅ Update session state directly when checkbox is toggled
                 if new_value:
                     st.session_state.selected_drivers.add(driver['運転手'])
                 else:
@@ -477,25 +468,12 @@ with tab2:
     else:
         st.warning("⚠️ 運転手データがありません。")
 
-    # ---- クリアボタン (Clear Selections) ----
+    # ---- クリアボタン (Clear All Selections) ----
     if st.button("🧹 クリア"):
         st.session_state.selected_players.clear()
         st.session_state.selected_drivers.clear()
-    
-        # ✅ Reset individual checkbox keys to force update
-        for player in df_sheet2["名前"].dropna():
-            key = f"player_{player.replace(' ', '_')}"
-            if key in st.session_state:
-                del st.session_state[key]
-    
-        for driver in df_sheet2["運転手"].dropna():
-            key = f"driver_{driver.replace(' ', '_')}"
-            if key in st.session_state:
-                del st.session_state[key]
-    
-        st.success("✅ チェックボックスをリセットしました！")
-        st.rerun()  # ✅ Force UI update immediately
-    
+        st.rerun()
+
     # ---- 自動割り当てボタン ----
     if st.button("🖱️ 自動割り当て"):
         if not st.session_state.selected_players or not st.session_state.selected_drivers:
@@ -505,43 +483,51 @@ with tab2:
             selected_driver_list = list(st.session_state.selected_drivers)
 
             # ✅ Organize players by grade
-            player_grades = {p["名前"]: p["学年"] for p in players if p["名前"] in selected_player_list}
-            grade_5 = [p for p in selected_player_list if player_grades.get(p) == "5"]
-            grade_6 = [p for p in selected_player_list if player_grades.get(p) == "6"]
-            player_queue = grade_5 + grade_6  # ✅ Ensure player queue is correct
+            player_grades = {p["名前"]: int(p["学年"]) for p in players if p["名前"] in selected_player_list}
+            grade_5 = [p for p in selected_player_list if player_grades.get(p) == 5]
+            grade_6 = [p for p in selected_player_list if player_grades.get(p) == 6]
+            player_queue = grade_5 + grade_6
 
             # ✅ Sort drivers by capacity (largest first)
             driver_capacities = {d['運転手']: int(d['定員']) for d in drivers if d['運転手'] in selected_driver_list}
             sorted_drivers = sorted(driver_capacities.items(), key=lambda x: x[1], reverse=True)
 
-            # ✅ Calculate total available seats before assigning players
-            total_seats = sum(driver_capacities[driver] for driver in selected_driver_list)
-            if len(player_queue) > total_seats:
-                st.error(f"🚨 選手の数 ({len(player_queue)}) が座席数 ({total_seats}) を超えています！運転手を追加してください。")
-                st.stop()
-
-            # ✅ Assign parent-child first
+            # ✅ Assign parent-child first and determine grade preference
             player_parents = {p["名前"]: p["親"] for p in players if p["名前"] in selected_player_list and p.get("親") and p["親"] in selected_driver_list}
-
-            assignments = {driver: [] for driver, _ in sorted_drivers}  # ✅ Initialize empty assignments
+            assignments = {driver: [] for driver, _ in sorted_drivers}
+            car_grade_preference = {}
 
             for player, parent in player_parents.items():
                 if parent in assignments and player in player_queue:
                     assignments[parent].append(player)
+                    car_grade_preference[parent] = player_grades[player]  # ✅ Determine the preferred grade level
                     player_queue.remove(player)
 
-            # ✅ Step 2: Round-Robin Assignment for Remaining Players
+            # ✅ Step 2: Grade-Aware Round-Robin Assignment
             driver_seats = {driver: capacity - len(assignments[driver]) for driver, capacity in sorted_drivers}
 
             while player_queue:
                 sorted_available_drivers = sorted(driver_seats.items(), key=lambda x: x[1], reverse=True)
                 for driver, available_seats in sorted_available_drivers:
                     if available_seats > 0 and player_queue:
-                        player = player_queue.pop(0)
-                        assignments[driver].append(player)
-                        driver_seats[driver] -= 1
+                        preferred_grade = car_grade_preference.get(driver, None)
 
-            # ✅ Step 3: Prevent Single-Kid Cars (Redistribute If Needed)
+                        # ✅ Try to assign a player of the preferred grade first
+                        assigned = False
+                        for player in player_queue:
+                            if preferred_grade and player_grades[player] == preferred_grade:
+                                assignments[driver].append(player)
+                                driver_seats[driver] -= 1
+                                player_queue.remove(player)
+                                assigned = True
+                                break
+
+                        # ✅ If no preferred grade players left, assign any remaining player
+                        if not assigned and player_queue:
+                            assignments[driver].append(player_queue.pop(0))
+                            driver_seats[driver] -= 1
+
+            # ✅ Step 3: Prevent Single-Kid Cars
             single_kid_cars = [d for d, p in assignments.items() if len(p) == 1]
             multi_kid_cars = [d for d, p in assignments.items() if len(p) >= 3]
 
@@ -555,10 +541,28 @@ with tab2:
 
             assignments = {driver: players for driver, players in assignments.items() if players}
 
-            # ---- 結果表示 (Show Results) ----
+            # ✅ Step 4: Copy to Clipboard Button (Only Appears After Assignment)
+            assignment_text = "\n".join(
+                [f"🚗 {driver} の車 ({driver_capacities[driver]}人乗り)\n" + "\n".join(f"- {player}" for player in players)
+                 for driver, players in assignments.items()]
+            )
+
             st.subheader("📝 割り当て結果")
             for driver, players in assignments.items():
                 st.markdown(f"🚗 **{driver} の車** ({driver_capacities[driver]}人乗り)")
                 for player in players:
                     st.write(f"- {player}")
 
+            # ✅ Copy button using JavaScript
+            st.markdown(
+                f"""
+                <button id="copyButton">📋 結果をコピー</button>
+                <script>
+                document.getElementById("copyButton").onclick = function() {{
+                    navigator.clipboard.writeText(`{assignment_text}`);
+                    alert("結果がクリップボードにコピーされました！");
+                }};
+                </script>
+                """,
+                unsafe_allow_html=True
+            )
