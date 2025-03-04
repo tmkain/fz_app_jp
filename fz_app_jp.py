@@ -65,8 +65,11 @@ def load_google_sheet_data():
         st.session_state["last_fetch_time"] = time.time()
     return st.session_state["sheet2_data"]
 
-sheet2_data = load_google_sheet_data()
-df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0]) if sheet2_data else pd.DataFrame(columns=["名前", "学年", "運転手", "定員", "親"])
+# ✅ Do not load data automatically, only when "確定" is clicked
+if "sheet2_data" not in st.session_state:
+    st.session_state["sheet2_data"] = load_google_sheet_data()
+df_sheet2 = pd.DataFrame(st.session_state["sheet2_data"][1:], columns=st.session_state["sheet2_data"][0]) if st.session_state["sheet2_data"] else pd.DataFrame(columns=["名前", "学年", "運転手", "定員", "親"])
+
 
 # ==============================
 # 🔹 Create Tabs for Features
@@ -422,7 +425,9 @@ with tab2:
         return st.session_state["sheet2_data"]
 
     # ✅ Load Google Sheets data efficiently
-    sheet2_data = load_google_sheet_data()
+    if st.button("✅ 確定"):
+        st.session_state["sheet2_data"] = load_google_sheet_data(force_reload=True)  # ✅ Now it only loads on confirmation
+        st.success("✅ 割り当てが確定しました！")
     if sheet2_data:
         df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0])  # ✅ Convert to DataFrame
     else:
@@ -444,12 +449,11 @@ with tab2:
 
         player_columns = st.columns(2)  # ✅ Arrange checkboxes in 2 columns
         for i, player in enumerate(players):
-            with player_columns[i % 2]:  # ✅ Distribute checkboxes across two columns
-                key = f"player_{player['名前'].replace(' ', '_')}"  # ✅ Ensure unique key
+            with player_columns[i % 2]:
+                key = f"player_{player['名前'].replace(' ', '_')}"
                 checked = player['名前'] in st.session_state.selected_players
                 new_value = st.checkbox(f"{player['名前']}（{player['学年']}年）", value=checked, key=key)
 
-                # ✅ Update session state directly when checkbox is toggled
                 if new_value:
                     st.session_state.selected_players.add(player['名前'])
                 else:
