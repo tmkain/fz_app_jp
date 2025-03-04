@@ -478,15 +478,19 @@ with tab2:
         st.warning("⚠️ 運転手データがありません。")
 
     # ---- 最大車両数設定 (Max Cars Allowed) ----
+    # ✅ Define an upper limit for the number of cars allowed
+    MAX_CARS_LIMIT = 10  # You can adjust this if needed
+    
     # ✅ Ensure drivers exist before setting `max_value`
-    max_drivers = len(st.session_state.selected_drivers) if st.session_state.selected_drivers else 1
+    num_selected_drivers = len(st.session_state.selected_drivers)
     
     max_cars = st.number_input(
         "🔢 最大車両数:",
         min_value=1,
-        max_value=max(max_drivers, 1),  # ✅ Prevents issues if no drivers are selected
-        value=min(10, max_drivers)
+        max_value=MAX_CARS_LIMIT,  # ✅ Always capped at a fixed upper limit
+        value=min(10, num_selected_drivers)  # ✅ Default value is the smaller of 10 or available drivers
     )
+
 
     # ---- 自動割り当てボタン ----
     if st.button("🖱️ 自動割り当て"):
