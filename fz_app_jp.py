@@ -415,15 +415,6 @@ df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0]) if sheet2_data
 with tab2:
     st.subheader("🎯 車両割り当てシステム")
 
-    # ---- Google Sheets Data Caching ----
-    def load_google_sheet_data():
-        """Loads Google Sheet data only when necessary to avoid API rate limits."""
-        if "sheet2_data" not in st.session_state or time.time() - st.session_state.get("last_fetch_time", 0) > 60:
-            sheet2_data = sheet2.get_all_values()
-            st.session_state["sheet2_data"] = sheet2_data
-            st.session_state["last_fetch_time"] = time.time()  # ✅ Store last refresh time
-        return st.session_state["sheet2_data"]
-
     # ---- 出席確認 (Player Attendance) ----
     st.subheader("👥 出席確認（チェックを入れてください）")
 
@@ -434,34 +425,29 @@ with tab2:
     if not df_sheet2.empty:
         players = df_sheet2[['名前', '学年', '親']].dropna().to_dict(orient="records")
 
-        # ✅ Handle "全員選択" properly by updating session state immediately
+        # ✅ "全員選択" updates checkboxes properly
         if st.button("全員選択", key="select_all_players"):
-            # ✅ Select all players
             st.session_state.selected_players = {p["名前"] for p in players}
-        
-            # ✅ Update checkboxes explicitly
-            for player in players:
-                key = f"player_{player['名前'].replace(' ', '_')}"
-                st.session_state[key] = True  # ✅ Explicitly set the checkbox value
+            st.session_state["force_rerun"] = True  # ✅ Forces rerun to update checkboxes
 
         player_columns = st.columns(2)  # ✅ Arrange checkboxes in 2 columns
         for i, player in enumerate(players):
             with player_columns[i % 2]:
                 key = f"player_{player['名前'].replace(' ', '_')}"
-        
-                # ✅ Ensure checkbox syncs correctly
+
+                # ✅ Ensure initial state is set
                 if key not in st.session_state:
                     st.session_state[key] = player['名前'] in st.session_state.selected_players
-        
-                # ✅ Let the checkbox control its own state, but reflect session state updates
+
+                # ✅ Let Streamlit manage the checkbox state naturally
                 new_value = st.checkbox(f"{player['名前']}（{player['学年']}年）", value=st.session_state[key], key=key)
-        
-                # ✅ Keep `selected_players` in sync with checkbox state
+
+                # ✅ Sync checkboxes and session state
                 if new_value:
                     st.session_state.selected_players.add(player['名前'])
                 else:
                     st.session_state.selected_players.discard(player['名前'])
-        
+
                 # ✅ Ensure checkboxes update visually
                 st.session_state[key] = new_value
 
@@ -481,7 +467,7 @@ with tab2:
 
         driver_columns = st.columns(2)  # ✅ Arrange checkboxes in 2 columns
         for i, driver in enumerate(drivers):
-            with driver_columns[i % 2]:  # ✅ Distribute checkboxes across two columns
+            with driver_columns[i % 2]:
                 key = f"driver_{driver['運転手'].replace(' ', '_')}_{i}"  # ✅ Ensure unique key
                 checked = driver['運転手'] in st.session_state.selected_drivers
                 new_value = st.checkbox(f"{driver['運転手']}（{driver['定員']}人乗り）", value=checked, key=key)
@@ -496,7 +482,12 @@ with tab2:
         st.warning("⚠️ 運転手データがありません。")
 
     # ---- 最大車両数設定 (Max Cars Allowed) ----
-    max_cars = min(len(st.session_state.selected_drivers), st.number_input("🔢 最大車両数:", min_value=1, max_value=len(drivers), value=10))  # ✅ Ensure it doesn’t exclude selected drivers
+    max_cars = st.number_input(
+        "🔢 最大車両数:",
+        min_value=1,
+        max_value=max(len(drivers), 1),  # ✅ Prevents crashing if no drivers are selected
+        value=min(10, len(st.session_state.selected_drivers))
+    )
 
     # ---- 自動割り当てボタン ----
     if st.button("🖱️ 自動割り当て"):
