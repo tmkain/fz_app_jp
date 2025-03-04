@@ -3,20 +3,15 @@ import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
-import os
-import json
 import time
 import googlemaps
 
 # ==============================
-# Secure Full-Screen Login System
+# 🚀 Secure Full-Screen Login System
 # ==============================
 
-@st.cache_resource
-def get_credentials():
-    return os.getenv("APP_USERNAME"), os.getenv("APP_PASSWORD")
-
-USERNAME, PASSWORD = get_credentials()
+USERNAME = st.secrets["APP_USERNAME"]
+PASSWORD = st.secrets["APP_PASSWORD"]
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -25,16 +20,17 @@ if not st.session_state.logged_in:
     st.markdown("<div style='text-align:center'><h2>🔑 ログイン</h2></div>", unsafe_allow_html=True)
     entered_username = st.text_input("ユーザー名", value="", key="username")
     entered_password = st.text_input("パスワード", value="", type="password", key="password")
+
     if st.button("ログイン"):
         if entered_username == USERNAME and entered_password == PASSWORD:
             st.session_state.logged_in = True
-            st.rerun()
+            st.experimental_rerun()
         else:
             st.error("🚫 ユーザー名またはパスワードが違います")
     st.stop()
 
 # Load API Key from environment variables
-API_KEY = os.getenv("GMAPS_API_KEY")  # ✅ Fetch from Render's environment settings
+API_KEY = st.secrets["GMAPS_API_KEY"]  # ✅ Streamlit Cloud Secret
 
 if not API_KEY:
     raise ValueError("⚠️ Missing Google Maps API Key! Set GMAPS_API_KEY in environment variables.")
@@ -43,52 +39,35 @@ if not API_KEY:
 gmaps = googlemaps.Client(key=API_KEY)
 
 # ==============================
-# Google Sheets Authentication (Cached)
+# ✅ Google Sheets Authentication (Using Streamlit Secrets)
 # ==============================
+
+google_creds = st.secrets["GOOGLE_CREDENTIALS"]
+creds = Credentials.from_service_account_info(google_creds)
+client = gspread.authorize(creds)
+
 SHEET_ID = "1upehCYwnGEcKg_zVQG7jlnNUykFmvNbuAtnxzqvSEcA"
-SHEET_NAME_1 = "Sheet1"
-SHEET_NAME_2 = "Sheet2"
+spreadsheet = client.open_by_key(SHEET_ID)
+sheet1 = spreadsheet.worksheet("Sheet1")  # 🚗 車代管理
+sheet2 = spreadsheet.worksheet("Sheet2")  # 🎯 車両割り当て
 
-@st.cache_resource
-def get_google_sheets():
-    creds_json = os.getenv("GOOGLE_CREDENTIALS")
-    if not creds_json:
-        raise ValueError("🚨 GOOGLE_CREDENTIALS environment variable not found.")
+# ==============================
+# 🚀 Google Sheets Data Caching (Avoid API Rate Limits)
+# ==============================
+def load_google_sheet_data():
+    if "sheet2_data" not in st.session_state or time.time() - st.session_state["last_fetch_time"] > 60:
+        sheet2_data = sheet2.get_all_values()
+        st.session_state["sheet2_data"] = sheet2_data
+        st.session_state["last_fetch_time"] = time.time()
+    return st.session_state["sheet2_data"]
 
-    creds_dict = json.loads(creds_json)
-    creds = Credentials.from_service_account_info(creds_dict, scopes=["https://www.googleapis.com/auth/spreadsheets"])
-    client = gspread.authorize(creds)
-    spreadsheet = client.open_by_key(SHEET_ID)
+sheet2_data = load_google_sheet_data()
+df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0]) if sheet2_data else pd.DataFrame(columns=["名前", "学年", "運転手", "定員", "親"])
 
-    try:
-        sheet1 = spreadsheet.worksheet(SHEET_NAME_1)  # ✅ Sheet1 (Payments)
-        sheet2 = spreadsheet.worksheet(SHEET_NAME_2)  # ✅ Sheet2 (Car Assignments)
-    except gspread.WorksheetNotFound:
-        raise ValueError(f"🚨 Worksheet '{SHEET_NAME_1}' or '{SHEET_NAME_2}' not found in Google Sheet.")
-
-    return sheet1, sheet2  # ✅ Ensure correct return
-
-# ✅ Load both sheets once (no duplicates!)
-sheet1, sheet2 = get_google_sheets()
-
-# ✅ Define headers correctly (not nested lists)
-headers_sheet1 = ["日付", "名前", "金額", "高速道路", "補足"]  # Sheet1: 車代管理
-headers_sheet2 = ["名前", "学年", "運転手", "定員"]  # Sheet2: 車両割り当て
-
-def ensure_sheet_headers(sheet, headers):
-    # Get all values from the sheet
-    existing_data = sheet.get_all_values()
-
-    # If the sheet is completely empty, add headers
-    if not existing_data or len(existing_data) < 1:
-        sheet.append_row(headers, value_input_option="USER_ENTERED")  # ✅ Use append_row() directly
-
-# ✅ Apply headers check
-ensure_sheet_headers(sheet1, headers_sheet1)
-ensure_sheet_headers(sheet2, headers_sheet2)
-
-# ------------------- 🔹 Create Tabs for Features 🔹 -------------------
-tab1, tab2 = st.tabs(["🚗 車代管理", "🎯 車両割り当て"])  # 🔹 Create tabs
+# ==============================
+# 🔹 Create Tabs for Features
+# ==============================
+tab1, tab2 = st.tabs(["🚗 車代管理", "🎯 車両割り当て"])
 
 # ---- TAB 1: 車代管理 (Your existing feature) ----
 with tab1:
@@ -423,29 +402,51 @@ def load_google_sheet_data():
 
 # ✅ Load Google Sheets data efficiently
 sheet2_data = load_google_sheet_data()
-df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0]) if sheet2_data else pd.DataFrame(columns=["名前", "学年", "運転手", "定員"])
+df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0]) if sheet2_data else pd.DataFrame(columns=["名前", "学年", "運転手", "定員", "親"])
 
 # ---- TAB 2: 車両割り当て (New Player-to-Car Assignment) ----
 with tab2:
     st.subheader("🎯 車両割り当てシステム")
 
-    # ✅ **出席確認 (Player Attendance)**
+    # ---- Google Sheets Data Caching ----
+    def load_google_sheet_data():
+        """Loads Google Sheet data only when necessary to avoid API rate limits."""
+        if "sheet2_data" not in st.session_state or time.time() - st.session_state["last_fetch_time"] > 60:
+            sheet2_data = sheet2.get_all_values()
+            st.session_state["sheet2_data"] = sheet2_data
+            st.session_state["last_fetch_time"] = time.time()  # ✅ Store last refresh time
+        return st.session_state["sheet2_data"]
+
+    # ✅ Load Google Sheets data efficiently
+    sheet2_data = load_google_sheet_data()
+    if sheet2_data:
+        df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0])  # ✅ Convert to DataFrame
+    else:
+        df_sheet2 = pd.DataFrame(columns=["名前", "学年", "運転手", "定員", "親"])  # ✅ Ensure correct columns, adding "親" (Parent)
+
+    # ---- 出席確認 (Player Attendance) ----
     st.subheader("👥 出席確認（チェックを入れてください）")
+
+    # ✅ Ensure selections persist
     if "selected_players" not in st.session_state:
         st.session_state.selected_players = set()
 
     if not df_sheet2.empty:
-        players = df_sheet2[['名前', '学年']].dropna().to_dict(orient="records")
+        players = df_sheet2[['名前', '学年', '親']].dropna().to_dict(orient="records")
 
+        # ✅ Handle "全員選択" properly by updating session state immediately
         if st.button("全員選択", key="select_all_players"):
-            st.session_state.selected_players = {p["名前"] for p in players}
+            st.session_state.selected_players = {p["名前"] for p in players}  # ✅ Update session state immediately
 
-        player_columns = st.columns(2)
+        player_columns = st.columns(2)  # ✅ Arrange checkboxes in 2 columns
         for i, player in enumerate(players):
-            with player_columns[i % 2]:
-                key = f"player_{player['名前']}"
+            with player_columns[i % 2]:  # ✅ Distribute checkboxes across two columns
+                key = f"player_{player['名前'].replace(' ', '_')}"  # ✅ Ensure unique key
                 checked = player['名前'] in st.session_state.selected_players
-                if st.checkbox(f"{player['名前']}（{player['学年']}年）", value=checked, key=key):
+                new_value = st.checkbox(f"{player['名前']}（{player['学年']}年）", value=checked, key=key)
+
+                # ✅ Update session state directly when checkbox is toggled
+                if new_value:
                     st.session_state.selected_players.add(player['名前'])
                 else:
                     st.session_state.selected_players.discard(player['名前'])
@@ -453,20 +454,26 @@ with tab2:
     else:
         st.warning("⚠️ 選手データがありません。")
 
-    # ✅ **運転手選択 (Driver Selection)**
+    # ---- 運転手選択 (Driver Selection) ----
     st.subheader("🚘 運転手（チェックを入れてください）")
+
+    # ✅ Ensure driver selections persist
     if "selected_drivers" not in st.session_state:
         st.session_state.selected_drivers = set()
 
     if not df_sheet2.empty:
+        # ✅ Remove blank rows from the driver list
         drivers = [d for d in df_sheet2[['運転手', '定員']].dropna().to_dict(orient="records") if d["運転手"] and d["定員"]]
 
-        driver_columns = st.columns(2)
+        driver_columns = st.columns(2)  # ✅ Arrange checkboxes in 2 columns
         for i, driver in enumerate(drivers):
-            with driver_columns[i % 2]:
-                key = f"driver_{driver['運転手']}_{i}"
+            with driver_columns[i % 2]:  # ✅ Distribute checkboxes across two columns
+                key = f"driver_{driver['運転手'].replace(' ', '_')}_{i}"  # ✅ Ensure unique key
                 checked = driver['運転手'] in st.session_state.selected_drivers
-                if st.checkbox(f"{driver['運転手']}（{driver['定員']}人乗り）", value=checked, key=key):
+                new_value = st.checkbox(f"{driver['運転手']}（{driver['定員']}人乗り）", value=checked, key=key)
+
+                # ✅ Update session state directly when checkbox is toggled
+                if new_value:
                     st.session_state.selected_drivers.add(driver['運転手'])
                 else:
                     st.session_state.selected_drivers.discard(driver['運転手'])
@@ -474,40 +481,62 @@ with tab2:
     else:
         st.warning("⚠️ 運転手データがありません。")
 
-    # ✅ **最大車両数設定 (Max Cars Allowed)**
-    max_cars = st.number_input("🔢 最大車両数:", min_value=1, max_value=len(drivers), value=10)
+    # ---- 最大車両数設定 (Max Cars Allowed) ----
+    max_cars = st.number_input("🔢 最大車両数:", min_value=1, max_value=len(drivers), value=10)  # ✅ Default is now 10
 
-    # ✅ **自動割り当て**
+    # ---- 自動割り当てボタン ----
     if st.button("🖱️ 自動割り当て"):
         if not st.session_state.selected_players or not st.session_state.selected_drivers:
             st.warning("⚠️ 選手と運転手を選択してください！")
         else:
-            selected_players = list(st.session_state.selected_players)
-            selected_drivers = list(st.session_state.selected_drivers)
+            selected_player_list = list(st.session_state.selected_players)
+            selected_driver_list = list(st.session_state.selected_drivers)
 
-            # 🎓 **学年別に選手をソート**
-            grade_5 = [p["名前"] for p in players if p["名前"] in selected_players and p["学年"] == "5"]
-            grade_6 = [p["名前"] for p in players if p["名前"] in selected_players and p["学年"] == "6"]
+            # ✅ Organize players by grade
+            grade_5 = [p for p in selected_player_list if "5" in p]
+            grade_6 = [p for p in selected_player_list if "6" in p]
 
-            # 🚗 **運転手と定員数を取得**
-            driver_capacities = {d["運転手"]: int(d["定員"]) for d in drivers if d["運転手"] in selected_drivers}
-            sorted_drivers = sorted(driver_capacities.items(), key=lambda x: x[1], reverse=True)[:max_cars]
+            # ✅ Sort drivers by capacity (largest first)
+            driver_capacities = {d['運転手']: int(d['定員']) for d in drivers if d['運転手'] in selected_driver_list}
+            sorted_drivers = sorted(driver_capacities.items(), key=lambda x: x[1], reverse=True)
+            sorted_drivers = sorted_drivers[:max_cars]  # ✅ Apply max car limit
 
-            # ✅ **割り当て処理**
-            assignments, player_queue = {}, grade_5 + grade_6  # 🔹 5年生→6年生の順に割り当て
+            # ✅ Assign parent-child first
+            player_parents = {p["名前"]: p["親"] for p in players if p["名前"] in selected_player_list and p.get("親") and p["親"] in selected_driver_list}
+
+            assignments = {}
+            player_queue = grade_5 + grade_6  # Prioritize grade grouping
 
             for driver, capacity in sorted_drivers:
-                if player_queue:
-                    assigned_players = player_queue[:capacity]
-                    assignments[driver] = assigned_players
-                    player_queue = player_queue[len(assigned_players):]  # ✅ Remove assigned players
+                assigned_players = []
 
-            # ✅ **割り当て結果を表示**
+                # ✅ Assign child to their parent first
+                for player, parent in player_parents.items():
+                    if parent == driver and player in player_queue:
+                        assigned_players.append(player)
+                        player_queue.remove(player)
+
+                # ✅ Fill remaining seats
+                while len(assigned_players) < capacity and player_queue:
+                    assigned_players.append(player_queue.pop(0))
+
+                # ✅ Prevent single-kid cars by redistributing
+                if len(assigned_players) == 1 and len(player_queue) >= 1:
+                    assigned_players.append(player_queue.pop(0))
+
+                assignments[driver] = assigned_players
+
+            # ---- 結果表示 (Show Results) ----
             st.subheader("📝 割り当て結果")
+
             for driver, players in assignments.items():
                 st.markdown(f"🚗 **{driver} の車** ({driver_capacities[driver]}人乗り)")
-                for player in players:
-                    st.write(f"- {player}")
+                if players:
+                    for player in players:
+                        st.write(f"- {player}")
+                else:
+                    st.write("❌ 割り当てなし")
 
+            # Warn if players remain unassigned
             if player_queue:
                 st.warning(f"⚠️ 割り当てできなかった選手: {', '.join(player_queue)}")
