@@ -426,7 +426,7 @@ with tab2:
     if sheet2_data:
         df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0])  # ✅ Convert to DataFrame
     else:
-        df_sheet2 = pd.DataFrame(columns=["名前", "学年", "運転手", "定員", "親"])  # ✅ Ensure correct columns, adding "親" (Parent)
+        df_sheet2 = pd.DataFrame(columns=["名前", "学年", "運転手", "定員", "親"])  # ✅ Ensure correct columns
 
     # ---- 出席確認 (Player Attendance) ----
     st.subheader("👥 出席確認（チェックを入れてください）")
@@ -486,7 +486,7 @@ with tab2:
         st.warning("⚠️ 運転手データがありません。")
 
     # ---- 最大車両数設定 (Max Cars Allowed) ----
-    max_cars = st.number_input("🔢 最大車両数:", min_value=1, max_value=len(drivers), value=10)  # ✅ Default is now 10
+    max_cars = min(len(st.session_state.selected_drivers), st.number_input("🔢 最大車両数:", min_value=1, max_value=len(drivers), value=10))  # ✅ Ensure it doesn’t exclude selected drivers
 
     # ---- 自動割り当てボタン ----
     if st.button("🖱️ 自動割り当て"):
@@ -497,8 +497,10 @@ with tab2:
             selected_driver_list = list(st.session_state.selected_drivers)
 
             # ✅ Organize players by grade
-            grade_5 = [p for p in selected_player_list if "5" in p]
-            grade_6 = [p for p in selected_player_list if "6" in p]
+            player_grades = {p["名前"]: p["学年"] for p in players if p["名前"] in selected_player_list}
+            grade_5 = [p for p in selected_player_list if player_grades.get(p) == "5"]
+            grade_6 = [p for p in selected_player_list if player_grades.get(p) == "6"]
+            player_queue = grade_5 + grade_6  # ✅ Ensure player queue is correct
 
             # ✅ Sort drivers by capacity (largest first)
             driver_capacities = {d['運転手']: int(d['定員']) for d in drivers if d['運転手'] in selected_driver_list}
@@ -509,8 +511,6 @@ with tab2:
             player_parents = {p["名前"]: p["親"] for p in players if p["名前"] in selected_player_list and p.get("親") and p["親"] in selected_driver_list}
 
             assignments = {}
-            player_queue = grade_5 + grade_6  # Prioritize grade grouping
-
             for driver, capacity in sorted_drivers:
                 assigned_players = []
 
@@ -530,17 +530,18 @@ with tab2:
 
                 assignments[driver] = assigned_players
 
+            # ✅ Remove drivers who received no players
+            assignments = {driver: players for driver, players in assignments.items() if players}
+
             # ---- 結果表示 (Show Results) ----
             st.subheader("📝 割り当て結果")
 
             for driver, players in assignments.items():
                 st.markdown(f"🚗 **{driver} の車** ({driver_capacities[driver]}人乗り)")
-                if players:
-                    for player in players:
-                        st.write(f"- {player}")
-                else:
-                    st.write("❌ 割り当てなし")
+                for player in players:
+                    st.write(f"- {player}")
 
             # Warn if players remain unassigned
             if player_queue:
                 st.warning(f"⚠️ 割り当てできなかった選手: {', '.join(player_queue)}")
+
