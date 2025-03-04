@@ -42,7 +42,7 @@ gmaps = googlemaps.Client(key=API_KEY)
 # ✅ Google Sheets Authentication (Using Streamlit Secrets)
 # ==============================
 
-service_account_info = dict(st.secrets["google_service_account"])
+service_account_info = dict(st.secrets["google_credentials"])
 
 service_account_info["private_key"] = service_account_info["private_key"].replace("\\n", "\n")
 
