@@ -10,8 +10,8 @@ import googlemaps
 # 🚀 Secure Full-Screen Login System
 # ==============================
 
-USERNAME = st.secrets["APP_USERNAME"]
-PASSWORD = st.secrets["APP_PASSWORD"]
+USERNAME = st.secrets["app"]["username"]
+PASSWORD = st.secrets["app"]["password"]
 
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
@@ -30,7 +30,7 @@ if not st.session_state.logged_in:
     st.stop()
 
 # Load API Key from environment variables
-API_KEY = st.secrets["GMAPS_API_KEY"]  # ✅ Streamlit Cloud Secret
+API_KEY = st.secrets["google_maps"]["api_key"]
 
 if not API_KEY:
     raise ValueError("⚠️ Missing Google Maps API Key! Set GMAPS_API_KEY in environment variables.")
@@ -42,7 +42,7 @@ gmaps = googlemaps.Client(key=API_KEY)
 # ✅ Google Sheets Authentication (Using Streamlit Secrets)
 # ==============================
 
-google_creds = st.secrets["GOOGLE_CREDENTIALS"]
+google_creds = st.secrets["google_credentials"]
 creds = Credentials.from_service_account_info(google_creds)
 client = gspread.authorize(creds)
 
