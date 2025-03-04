@@ -425,22 +425,22 @@ with tab2:
     if not df_sheet2.empty:
         players = df_sheet2[['名前', '学年', '親']].dropna().to_dict(orient="records")
 
-        # ✅ "全員選択" updates checkboxes properly
+        # ✅ "全員選択" properly updates checkboxes
         if st.button("全員選択", key="select_all_players"):
-            # ✅ Select all players
             st.session_state.selected_players = {p["名前"] for p in players}
-            
-            # ✅ Force UI update
-            st.session_state["force_rerun"] = True
-            st.rerun()  # ✅ Forces a UI update without API errors
+            st.rerun()  # ✅ Force UI update
 
         player_columns = st.columns(2)  # ✅ Arrange checkboxes in 2 columns
         for i, player in enumerate(players):
             with player_columns[i % 2]:
                 key = f"player_{player['名前'].replace(' ', '_')}"
 
-                # ✅ Let Streamlit handle checkbox state naturally
-                new_value = st.checkbox(f"{player['名前']}（{player['学年']}年）", key=key)
+                # ✅ Ensure checkbox state is controlled by session state
+                new_value = st.checkbox(
+                    f"{player['名前']}（{player['学年']}年）",
+                    key=key,
+                    value=player['名前'] in st.session_state.selected_players
+                )
 
                 # ✅ Sync `selected_players` with checkbox state
                 if new_value:
@@ -504,6 +504,12 @@ with tab2:
             sorted_drivers = sorted(driver_capacities.items(), key=lambda x: x[1], reverse=True)
             sorted_drivers = sorted_drivers[:max_cars]  # ✅ Apply max car limit
 
+            # ✅ Calculate total available seats before assigning players
+            total_seats = sum(driver_capacities[driver] for driver in selected_driver_list)
+            if len(player_queue) > total_seats:
+                st.error(f"🚨 選手の数 ({len(player_queue)}) が座席数 ({total_seats}) を超えています！運転手を追加してください。")
+                st.stop()
+
             # ✅ Assign parent-child first
             player_parents = {p["名前"]: p["親"] for p in players if p["名前"] in selected_player_list and p.get("親") and p["親"] in selected_driver_list}
 
@@ -525,6 +531,18 @@ with tab2:
                         assignments[driver].append(player)
                         driver_seats[driver] -= 1
 
+            # ✅ Step 3: Prevent Single-Kid Cars (Redistribute If Needed)
+            single_kid_cars = [d for d, p in assignments.items() if len(p) == 1]
+            multi_kid_cars = [d for d, p in assignments.items() if len(p) >= 3]
+
+            if single_kid_cars and multi_kid_cars:
+                for single_car in single_kid_cars:
+                    for multi_car in multi_kid_cars:
+                        if len(assignments[multi_car]) > 2:
+                            moved_player = assignments[multi_car].pop()
+                            assignments[single_car].append(moved_player)
+                            break
+
             assignments = {driver: players for driver, players in assignments.items() if players}
 
             # ---- 結果表示 (Show Results) ----
@@ -533,3 +551,4 @@ with tab2:
                 st.markdown(f"🚗 **{driver} の車** ({driver_capacities[driver]}人乗り)")
                 for player in players:
                     st.write(f"- {player}")
+
