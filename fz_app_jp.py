@@ -479,18 +479,17 @@ with tab2:
 
     # ---- 最大車両数設定 (Max Cars Allowed) ----
     # ✅ Define an upper limit for the number of cars allowed
-    MAX_CARS_LIMIT = 10  # You can adjust this if needed
+    MAX_CARS_LIMIT = 10  # Modify this as needed
     
     # ✅ Ensure drivers exist before setting `max_value`
-    num_selected_drivers = len(st.session_state.selected_drivers)
+    num_selected_drivers = len(st.session_state.selected_drivers) if "selected_drivers" in st.session_state else 0
     
     max_cars = st.number_input(
         "🔢 最大車両数:",
         min_value=1,
-        max_value=MAX_CARS_LIMIT,  # ✅ Always capped at a fixed upper limit
-        value=min(10, num_selected_drivers)  # ✅ Default value is the smaller of 10 or available drivers
+        max_value=max(1, min(MAX_CARS_LIMIT, num_selected_drivers)),  # ✅ Ensures valid range
+        value=min(10, max(1, num_selected_drivers))  # ✅ Default: 10 or available drivers
     )
-
 
     # ---- 自動割り当てボタン ----
     if st.button("🖱️ 自動割り当て"):
