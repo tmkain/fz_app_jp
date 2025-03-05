@@ -545,7 +545,7 @@ with tab2:
             st.subheader("📝 割り当て結果")
             assignment_lines = []
             for driver, players in assignments.items():
-                st.markdown(f"🚗 **{driver} の車** ({driver_capacities[driver]}人乗り)")
+                st.markdown(f"🚗 **{driver}カー** ({driver_capacities[driver]}人乗り)")
                 assignment_lines.append(f"🚗 {driver} の車 ({driver_capacities[driver]}人乗り)")
                 for player in players:
                     st.write(f"- {player}")
