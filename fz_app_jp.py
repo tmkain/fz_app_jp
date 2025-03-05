@@ -552,18 +552,21 @@ with tab2:
                 for player in players:
                     st.write(f"- {player}")
 
-            # ✅ Fix clipboard copy formatting
+            # ✅ Fix clipboard copy formatting to prevent text from breaking
             assignment_text = "\n\n".join(
                 [f"🚗 {driver} の車 ({driver_capacities[driver]}人乗り)\n" + "\n".join(f"- {player}" for player in players)
                  for driver, players in assignments.items()]
             )
+            
+            # ✅ Ensure backticks are escaped properly in JavaScript
+            escaped_assignment_text = assignment_text.replace("`", "\\`").replace("\\", "\\\\")
             
             st.markdown(
                 f"""
                 <button id="copyButton">📋 結果をコピー</button>
                 <script>
                 document.getElementById("copyButton").onclick = function() {{
-                    let assignmentText = `{assignment_text.replace("`", "\\`")}`;
+                    let assignmentText = `{escaped_assignment_text}`;
                     navigator.clipboard.writeText(assignmentText).then(() => {{
                         alert("結果がクリップボードにコピーされました！");
                     }});
@@ -572,5 +575,6 @@ with tab2:
                 """,
                 unsafe_allow_html=True
             )
+
 
 
