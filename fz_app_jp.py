@@ -475,7 +475,10 @@ with tab2:
             player_grades_tab2 = {p["名前"]: int(p["学年"]) for p in players if p["名前"] in selected_player_list}
             grade_5 = [p for p in selected_player_list if player_grades_tab2.get(p) == 5]
             grade_6 = [p for p in selected_player_list if player_grades_tab2.get(p) == 6]
-            player_queue_tab2 = grade_5 + grade_6
+            import random
+            random.shuffle(grade_5)  # ✅ Shuffle 5th graders separately
+            random.shuffle(grade_6)  # ✅ Shuffle 6th graders separately
+            player_queue_tab2 = grade_5 + grade_6  # ✅ Combine after shuffling
 
             # ✅ Sort drivers by capacity (largest first)
             driver_capacities_tab2 = {d['運転手']: int(d['定員']) for d in drivers if d['運転手'] in selected_driver_list}
@@ -660,7 +663,12 @@ with tab3:
             grade_2 = [p for p in selected_player_list if player_grades_tab3.get(p) == 2]
             grade_3 = [p for p in selected_player_list if player_grades_tab3.get(p) == 3]
             grade_4 = [p for p in selected_player_list if player_grades_tab3.get(p) == 4]
-            player_queue_tab3 = grade_1 + grade_2 + grade_3 + grade_4
+            import random
+            random.shuffle(grade_1)  # ✅ Shuffle 1st graders separately
+            random.shuffle(grade_2)  # ✅ Shuffle 2nd graders separately
+            random.shuffle(grade_3)  # ✅ Shuffle 3rd graders separately
+            random.shuffle(grade_4)  # ✅ Shuffle 4th graders separately
+            player_queue_tab3 = grade_1 + grade_2 + grade_3 + grade_4  # ✅ Maintain order by grade
 
             # ✅ Sort drivers by capacity (largest first)
             driver_capacities_tab3 = {d['運転手']: int(d['定員']) for d in drivers_tab3 if d['運転手'] in selected_driver_list}
