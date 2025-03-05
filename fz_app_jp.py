@@ -398,20 +398,6 @@ with tab1:
 
 import time
 
-# ---- Google Sheets Data Caching ----
-@st.cache_resource
-def load_google_sheet_data():
-    """Loads Google Sheet data only when necessary to avoid API rate limits."""
-    if "sheet2_data" not in st.session_state or time.time() - st.session_state.get("last_fetch_time", 0) > 60:
-        sheet2_data = sheet2.get_all_values()
-        st.session_state["sheet2_data"] = sheet2_data
-        st.session_state["last_fetch_time"] = time.time()  # ✅ Store last refresh time
-    return st.session_state["sheet2_data"]
-
-# ✅ Load Google Sheets data efficiently
-sheet2_data = load_google_sheet_data()
-df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0]) if sheet2_data else pd.DataFrame(columns=["名前", "学年", "運転手", "定員", "親"])
-
 # ---- TAB 2: 車両割り当て (New Player-to-Car Assignment) ----
 with tab2:
     st.header("🎯 車両割り当てシステム")
@@ -476,11 +462,18 @@ with tab2:
 
     # ---- 自動割り当てボタン ----
     if st.button("🖱️ 自動割り当て", key="assign_tab2"):
+        if "sheet2_data" not in st.session_state or st.session_state["sheet2_data"] is None:
+            sheet2_data = sheet2.get_all_values()
+            st.session_state["sheet2_data"] = sheet2_data
+            st.session_state["last_fetch_time_tab2"] = time.time()
+        
         if not st.session_state.selected_players_tab2 or not st.session_state.selected_drivers_tab2:
             st.warning("⚠️ 選手と運転手を選択してください！")
         else:
-            selected_player_list = list(st.session_state.selected_players_tab2)
-            selected_driver_list = list(st.session_state.selected_drivers_tab2)
+            df_sheet2 = pd.DataFrame(
+                st.session_state["sheet2_data"][1:], 
+                columns=st.session_state["sheet2_data"][0]
+            ) if st.session_state["sheet2_data"] else pd.DataFrame(columns=["名前", "学年", "運転手", "定員", "親"])
 
             # ✅ Organize players by grade
             player_grades_tab2 = {p["名前"]: int(p["学年"]) for p in players if p["名前"] in selected_player_list}
