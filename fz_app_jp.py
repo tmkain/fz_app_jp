@@ -745,3 +745,17 @@ with tab3:
                 <button onclick="copyToClipboard()">📋 結果をコピー</button>
                 """
                 components.html(copy_script, height=50)
+
+st.markdown(
+    """
+    <hr>
+    <div style="text-align:center;">
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSennCFNXXDa2vqC6aPey8h9aFdIS3P7Mha9sW-sOJ2ewC654w/viewform?usp=sharing" target="_blank" 
+           style="font-size: 16px; text-decoration: none; color: blue;">
+            選手・運転手などのデータの変更（管理者へのフォーム）
+        </a>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
