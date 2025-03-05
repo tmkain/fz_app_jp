@@ -468,7 +468,7 @@ with tab2:
         st.warning("⚠️ 運転手データがありません。")
 
     # ---- クリアボタン (Clear All Selections) ----
-    if st.button("🧹 クリア"):
+    if st.button("🧹 クリア", key="clear_tab2"):
         st.session_state.selected_players_tab2.clear()
         st.session_state.selected_drivers_tab2.clear()
         st.rerun()
@@ -631,7 +631,7 @@ with tab3:
         st.warning("⚠️ 運転手データがありません。")
 
     # ---- クリアボタン (Clear All Selections) ----
-    if st.button("🧹 クリア"):
+    if st.button("🧹 クリア", key="clear_tab3"):
         st.session_state.selected_players_tab3.clear()
         st.session_state.selected_drivers_tab3.clear()
         st.rerun()
