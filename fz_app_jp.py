@@ -5,6 +5,7 @@ from google.oauth2.service_account import Credentials
 from datetime import datetime
 import time
 import googlemaps
+import streamlit.components.v1 as components
 
 # ==============================
 # 🚀 Secure Full-Screen Login System
@@ -541,41 +542,32 @@ with tab2:
             assignments = {driver: players for driver, players in assignments.items() if players}
 
             # ✅ Step 4: Copy to Clipboard Button (Only Appears After Assignment)
-            assignment_text = "\n".join(
-                [f"🚗 {driver} の車 ({driver_capacities[driver]}人乗り)\n" + "\n".join(f"- {player}" for player in players)
-                 for driver, players in assignments.items()]
-            )
 
             st.subheader("📝 割り当て結果")
+            assignment_lines = []
             for driver, players in assignments.items():
                 st.markdown(f"🚗 **{driver} の車** ({driver_capacities[driver]}人乗り)")
+                assignment_lines.append(f"🚗 {driver} の車 ({driver_capacities[driver]}人乗り)")
                 for player in players:
                     st.write(f"- {player}")
+                    assignment_lines.append(f"- {player}")
 
-            # ✅ Generate the assignment text properly, preserving formatting
-            assignment_text = "\n\n".join(
-                [f"🚗 {driver} の車 ({driver_capacities[driver]}人乗り)\n" + "\n".join(f"- {player}" for player in players)
-                 for driver, players in assignments.items()]
-            )
+            # ✅ Preserve formatting for clipboard copying
+            assignment_text = "\n".join(assignment_lines)
             
-            # ✅ Escape backticks and ensure line breaks are preserved for JavaScript
-            escaped_assignment_text = assignment_text.replace("`", "\\`").replace("\\", "\\\\")
-            
-            # ✅ JavaScript button for copying to clipboard (hidden text, executes without appearing in UI)
-            st.markdown(
-                f"""
-                <button id="copyButton">📋 結果をコピー</button>
+            # ✅ Escape backticks and backslashes for JavaScript
+            escaped_assignment_text = assignment_text.replace("\\", "\\\\").replace("`", "\\`")
+
+            # ✅ JavaScript Copy Button (Only shows after results are generated)
+            if assignment_text.strip():
+                copy_script = f"""
                 <script>
-                document.getElementById("copyButton").onclick = function() {{
-                    let assignmentText = `{escaped_assignment_text}`;
-                    navigator.clipboard.writeText(assignmentText).then(() => {{
-                        alert("✅ 結果がクリップボードにコピーされました！");
-                    }}).catch(err => {{
-                        alert("❌ コピーに失敗しました: " + err);
+                function copyToClipboard() {{
+                    navigator.clipboard.writeText(`{escaped_assignment_text}`).then(() => {{
+                        alert("結果がクリップボードにコピーされました！");
                     }});
-                }};
+                }}
                 </script>
-                """,
-                unsafe_allow_html=True
-            )
-
+                <button onclick="copyToClipboard()">📋 結果をコピー</button>
+                """
+                components.html(copy_script, height=50)
