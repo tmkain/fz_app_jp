@@ -383,11 +383,14 @@ with tab1:
 import time
 
 # ---- TAB 2: 車両割り当て (New Player-to-Car Assignment) ----
-if "df_sheet2" not in globals():
-    df_sheet2 = pd.DataFrame()
+if "sheet2_data" not in st.session_state:
+    st.session_state["sheet2_data"] = sheet2.get_all_values()
+    st.session_state["last_fetch_time_tab2"] = time.time()
 
-if not df_sheet2.empty:
-    players = df_sheet2[['名前', '学年', '親']].dropna().to_dict(orient="records")
+df_sheet2 = pd.DataFrame(
+    st.session_state["sheet2_data"][1:], 
+    columns=st.session_state["sheet2_data"][0]
+)
 
 with tab2:
     st.header("🎯 車両割り当てシステム")
@@ -559,11 +562,15 @@ with tab2:
                 components.html(copy_script, height=50)
 
 # ---- TAB 3: 車両割り当て (New Player-to-Car Assignment) ----
-if "df_sheet3" not in globals():
-    df_sheet3 = pd.DataFrame()
+if "sheet3_data" not in st.session_state:
+    st.session_state["sheet3_data"] = sheet3.get_all_values()
+    st.session_state["last_fetch_time_tab3"] = time.time()
 
-if not df_sheet3.empty:
-    players = df_sheet3[['名前', '学年', '親']].dropna().to_dict(orient="records")
+df_sheet3 = pd.DataFrame(
+    st.session_state["sheet3_data"][1:], 
+    columns=st.session_state["sheet3_data"][0]
+)
+
     
 with tab3:
     st.header("🎯 車両割り当てシステム")
