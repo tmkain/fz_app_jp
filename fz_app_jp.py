@@ -572,6 +572,17 @@ with tab2:
                 components.html(copy_script, height=50)
 
 # ---- TAB 3: 車両割り当て (New Player-to-Car Assignment) ----
+def load_google_sheet_data_tab3():
+    if "sheet3_data" not in st.session_state or time.time() - st.session_state["last_fetch_time_tab3"] > 60:
+        sheet3_data = sheet3.get_all_values()
+        st.session_state["sheet3_data"] = sheet3_data
+        st.session_state["last_fetch_time_tab3"] = time.time()
+    return st.session_state["sheet3_data"]
+
+# ✅ Do not load data automatically, only when "確定" is clicked
+if "sheet3_data" not in st.session_state:
+    st.session_state["sheet3_data"] = load_google_sheet_data_tab3()
+df_sheet3 = pd.DataFrame(st.session_state["sheet3_data"][1:], columns=st.session_state["sheet3_data"][0]) if st.session_state["sheet3_data"] else pd.DataFrame(columns=["名前", "学年", "運転手", "定員", "親"])  # Ensures df_sheet3 is defined even if empty
 if "df_sheet3" not in globals():
     df_sheet3 = pd.DataFrame()  # Ensures df_sheet3 is defined even if empty
 
