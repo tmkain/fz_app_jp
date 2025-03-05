@@ -408,8 +408,10 @@ def load_google_sheet_data():
     return st.session_state["sheet2_data"]
 
 # ✅ Load Google Sheets data efficiently
-sheet2_data = load_google_sheet_data()
+sheet2_data = load_google_sheet_data(sheet2, "df_sheet2")
 df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0]) if sheet2_data else pd.DataFrame(columns=["名前", "学年", "運転手", "定員", "親"])
+sheet3_data = load_google_sheet_data(sheet3, "df_sheet3")
+df_sheet3 = pd.DataFrame(sheet3_data[1:], columns=sheet3_data[0]) if sheet3_data else pd.DataFrame(columns=["名前", "学年", "運転手", "定員", "親"])
 
 # ✅ Create tabs
 tab2, tab3 = st.tabs(["🎯 小5-6", "🎯 小3-4"])
