@@ -149,7 +149,6 @@ with tab1:
     # ==============================
     # Data Entry Section
     # ==============================
-    st.title("🚗 Fz 車代管理アプリ")
     st.header("データ入力")
     
     st.session_state.date = st.date_input("試合日を選択してください", value=st.session_state.date)
