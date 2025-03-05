@@ -79,7 +79,7 @@ tab1, tab2 = st.tabs(["🚗 車代管理", "🎯 車両割り当て"])
 
 # ---- TAB 1: 車代管理 (Your existing feature) ----
 with tab1:
-    st.subheader("🚗 車代管理システム")
+    st.header("🚗 車代管理システム")
 
     # ==============================
     # Initialize Session State
@@ -149,7 +149,7 @@ with tab1:
     # ==============================
     # Data Entry Section
     # ==============================
-    st.header("データ入力")
+    st.subheader("データ入力")
     
     st.session_state.date = st.date_input("試合日を選択してください", value=st.session_state.date)
     
@@ -413,10 +413,10 @@ df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0]) if sheet2_data
 
 # ---- TAB 2: 車両割り当て (New Player-to-Car Assignment) ----
 with tab2:
-    st.subheader("🎯 車両割り当てシステム")
+    st.header("🎯 車両割り当てシステム")
 
     # ---- 出席確認 (Player Attendance) ----
-    st.subheader("👥 出席確認（チェックを入れてください）")
+    st.subheader("⚾️ 出席確認（チェックを入れてください）")
 
     if "selected_players" not in st.session_state:
         st.session_state.selected_players = set()
