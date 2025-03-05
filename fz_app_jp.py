@@ -474,7 +474,7 @@ with tab2:
         st.rerun()
 
     # ---- 自動割り当てボタン ----
-    if st.button("🖱️ 自動割り当て"):
+    if st.button("🖱️ 自動割り当て", key="assign_tab2"):
         if not st.session_state.selected_players_tab2 or not st.session_state.selected_drivers_tab2:
             st.warning("⚠️ 選手と運転手を選択してください！")
         else:
@@ -638,7 +638,7 @@ with tab3:
 
 
     # ---- 自動割り当てボタン ----
-    if st.button("🖱️ 自動割り当て"):
+    if st.button("🖱️ 自動割り当て", key="assign_tab3"):
         if not st.session_state.selected_players_tab3 or not st.session_state.selected_drivers_tab3:
             st.warning("⚠️ 選手と運転手を選択してください！")
         else:
