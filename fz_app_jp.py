@@ -517,6 +517,9 @@ def car_assignment_tab(tab, df_sheet, session_key):
                     for passenger in passengers:
                         st.write(f"- {passenger}")
 
+if df_sheet3 is None or df_sheet3.empty:
+    st.warning("⚠️ 小3-4 のデータがロードされていません。")
+
 # ✅ Apply function to both tabs
 car_assignment_tab(tab2, df_sheet2, "tab2")
 car_assignment_tab(tab3, df_sheet3, "tab3")
