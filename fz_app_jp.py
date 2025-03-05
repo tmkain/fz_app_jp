@@ -56,20 +56,23 @@ spreadsheet = client.open_by_key(SHEET_ID)
 sheet1 = spreadsheet.worksheet("Sheet1")  # 🚗 車代管理
 sheet2 = spreadsheet.worksheet("Sheet2")  # 🎯 車両割り当て
 
-# ==============================
-# 🚀 Google Sheets Data Caching (Avoid API Rate Limits)
-# ==============================
-def load_google_sheet_data():
-    if "sheet2_data" not in st.session_state or time.time() - st.session_state["last_fetch_time"] > 60:
-        sheet2_data = sheet2.get_all_values()
-        st.session_state["sheet2_data"] = sheet2_data
-        st.session_state["last_fetch_time"] = time.time()
-    return st.session_state["sheet2_data"]
+# ---- Google Sheets Data Caching ----
+@st.cache_resource
+def load_google_sheet_data(sheet_name):
+    """Loads Google Sheet data only when necessary to avoid API rate limits."""
+    sheet = spreadsheet.worksheet(sheet_name)
+    if f"{sheet_name}_data" not in st.session_state or time.time() - st.session_state.get(f"{sheet_name}_last_fetch_time", 0) > 60:
+        sheet_data = sheet.get_all_values()
+        st.session_state[f"{sheet_name}_data"] = sheet_data
+        st.session_state[f"{sheet_name}_last_fetch_time"] = time.time()  # ✅ Store last refresh time
+    return st.session_state[f"{sheet_name}_data"]
 
-# ✅ Do not load data automatically, only when "確定" is clicked
-if "sheet2_data" not in st.session_state:
-    st.session_state["sheet2_data"] = load_google_sheet_data()
-df_sheet2 = pd.DataFrame(st.session_state["sheet2_data"][1:], columns=st.session_state["sheet2_data"][0]) if st.session_state["sheet2_data"] else pd.DataFrame(columns=["名前", "学年", "運転手", "定員", "親"])
+# ✅ Load and store data separately for each tab
+sheet2_data = load_google_sheet_data("Sheet2")
+df_sheet2 = pd.DataFrame(sheet2_data[1:], columns=sheet2_data[0]) if sheet2_data else pd.DataFrame(columns=["名前", "学年", "運転手", "定員", "親"])
+
+sheet3_data = load_google_sheet_data("Sheet3")
+df_sheet3 = pd.DataFrame(sheet3_data[1:], columns=sheet3_data[0]) if sheet3_data else pd.DataFrame(columns=["名前", "学年", "運転手", "定員", "親"])
 
 
 # ==============================
@@ -427,7 +430,8 @@ sheet3 = spreadsheet.worksheet("Sheet3")  # 🎯 小3-4
 
 # ✅ Load data efficiently
 def load_google_sheet_data(sheet):
-    return pd.DataFrame(sheet.get_all_values()[1:], columns=sheet.get_all_values()[0])
+    data = sheet.get_all_values()
+    return pd.DataFrame(data[1:], columns=data[0]) if data else pd.DataFrame()
 
 df_sheet2 = load_google_sheet_data(sheet2)
 df_sheet3 = load_google_sheet_data(sheet3)
@@ -524,7 +528,7 @@ def car_assignment_tab(tab, df_sheet, session_key):
                     for player in players:
                         st.write(f"- {player}")
                         assignment_lines.append(f"- {player}")
-
+                
                 assignment_text = "\n".join(assignment_lines)
                 escaped_assignment_text = assignment_text.replace("\\", "\\\\").replace("`", "\\`")
                 if assignment_text.strip():
@@ -543,4 +547,3 @@ def car_assignment_tab(tab, df_sheet, session_key):
 # ✅ Apply function to both tabs
 car_assignment_tab(tab2, df_sheet2, "tab2")
 car_assignment_tab(tab3, df_sheet3, "tab3")
-
