@@ -383,6 +383,12 @@ with tab1:
 import time
 
 # ---- TAB 2: 車両割り当て (New Player-to-Car Assignment) ----
+if "df_sheet2" not in globals():
+    df_sheet2 = pd.DataFrame()
+
+if not df_sheet2.empty:
+    players = df_sheet2[['名前', '学年', '親']].dropna().to_dict(orient="records")
+
 with tab2:
     st.header("🎯 車両割り当てシステム")
 
@@ -553,6 +559,12 @@ with tab2:
                 components.html(copy_script, height=50)
 
 # ---- TAB 3: 車両割り当て (New Player-to-Car Assignment) ----
+if "df_sheet3" not in globals():
+    df_sheet3 = pd.DataFrame()
+
+if not df_sheet3.empty:
+    players = df_sheet3[['名前', '学年', '親']].dropna().to_dict(orient="records")
+    
 with tab3:
     st.header("🎯 車両割り当てシステム")
 
