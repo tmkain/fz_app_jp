@@ -572,6 +572,9 @@ with tab2:
                 components.html(copy_script, height=50)
 
 # ---- TAB 3: 車両割り当て (New Player-to-Car Assignment) ----
+if "df_sheet3" not in globals():
+    df_sheet3 = pd.DataFrame()  # Ensures df_sheet3 is defined even if empty
+
 with tab3:
     st.header("🎯 車両割り当てシステム")
 
@@ -733,4 +736,3 @@ with tab3:
                 <button onclick="copyToClipboard()">📋 結果をコピー</button>
                 """
                 components.html(copy_script, height=50)
-
