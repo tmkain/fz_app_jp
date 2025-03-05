@@ -75,7 +75,7 @@ df_sheet2 = pd.DataFrame(st.session_state["sheet2_data"][1:], columns=st.session
 # ==============================
 # 🔹 Create Tabs for Features
 # ==============================
-tab1, tab2 = st.tabs(["🚗 車代管理", "🎯 車両割り当て"])
+tab1, tab2, tab3 = st.tabs(["🚗 車代管理", "🎯 高：車両割り当て", "🎯 低：車両割り当て"])
 
 # ---- TAB 1: 車代管理 (Your existing feature) ----
 with tab1:
