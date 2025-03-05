@@ -647,9 +647,9 @@ with tab3:
 
             # ✅ Organize players by grade
             player_grades = {p["名前"]: int(p["学年"]) for p in players if p["名前"] in selected_player_list}
-            grade_5 = [p for p in selected_player_list if player_grades.get(p) == 5]
-            grade_6 = [p for p in selected_player_list if player_grades.get(p) == 6]
-            player_queue = grade_5 + grade_6
+            grade_3 = [p for p in selected_player_list if player_grades.get(p) == 3]
+            grade_4 = [p for p in selected_player_list if player_grades.get(p) == 4]
+            player_queue = grade_3 + grade_4
 
             # ✅ Sort drivers by capacity (largest first)
             driver_capacities = {d['運転手']: int(d['定員']) for d in drivers if d['運転手'] in selected_driver_list}
