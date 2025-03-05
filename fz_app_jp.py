@@ -55,6 +55,7 @@ SHEET_ID = "1upehCYwnGEcKg_zVQG7jlnNUykFmvNbuAtnxzqvSEcA"
 spreadsheet = client.open_by_key(SHEET_ID)
 sheet1 = spreadsheet.worksheet("Sheet1")  # 🚗 車代管理
 sheet2 = spreadsheet.worksheet("Sheet2")  # 🎯 車両割り当て
+sheet3 = spreadsheet.worksheet("Sheet3")  # 🎯 Tab 3 Data
 
 # ==============================
 # 🚀 Google Sheets Data Caching (Avoid API Rate Limits)
