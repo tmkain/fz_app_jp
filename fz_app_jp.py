@@ -398,30 +398,63 @@ with tab2:
     # ---- 出席確認 (Player Attendance) ----
     st.subheader("⚾️ 出席確認（チェックを入れてください）")
 
-    if "selected_players_tab2" not in st.session_state:
-        st.session_state.selected_players_tab2 = set()
-
-    if not df_sheet2.empty:
-        players = df_sheet2[['名前', '学年', '親']].dropna().to_dict(orient="records")
-
-        # ✅ FIXED: Properly working "全員選択" button
-        if st.button("全員選択", key="select_all_players_tab2"):
-            st.session_state.selected_players_tab2 = {p["名前"] for p in players}
-            st.rerun()  # ✅ Force UI refresh to immediately reflect changes
-
-        player_columns = st.columns(2)
-        for i, player in enumerate(players):
-            with player_columns[i % 2]:
-                key = f"player_tab2_{player['名前'].replace(' ', '_')}"
-                new_value = st.checkbox(f"{player['名前']}（{player['学年']}年）", value=player["名前"] in st.session_state.selected_players_tab2, key=key)
-
-                if new_value:
-                    st.session_state.selected_players_tab2.add(player['名前'])
-                else:
-                    st.session_state.selected_players_tab2.discard(player['名前'])
-
-    else:
-        st.warning("⚠️ 選手データがありません。")
+    # ✅ Store selections locally without triggering API calls
+    if "temp_selected_players_tab2" not in st.session_state:
+        st.session_state.temp_selected_players_tab2 = set()
+    if "temp_selected_drivers_tab2" not in st.session_state:
+        st.session_state.temp_selected_drivers_tab2 = set()
+    
+    # ✅ Select All functionality for players
+    def select_all_players():
+        st.session_state.temp_selected_players_tab2 = set(player_tab2_list)
+    
+    def deselect_all_players():
+        st.session_state.temp_selected_players_tab2.clear()
+    
+    st.write("### 選手を選択")  # "Select Players"
+    st.button("全員選択", on_click=select_all_players)
+    st.button("全員解除", on_click=deselect_all_players)
+    
+    # ✅ Use a dictionary to store checkbox states locally before updating session state
+    if "checkbox_states_players_tab2" not in st.session_state:
+        st.session_state.checkbox_states_players_tab2 = {p: p in st.session_state.temp_selected_players_tab2 for p in player_tab2_list}
+    
+    for player in player_tab2_list:
+        key = f"player_tab2_{player}"
+        st.session_state.checkbox_states_players_tab2[player] = st.checkbox(
+            player, key=key, value=st.session_state.checkbox_states_players_tab2[player]
+        )
+    
+    # ✅ Select All functionality for drivers
+    def select_all_drivers():
+        st.session_state.temp_selected_drivers_tab2 = set(driver_tab2_list)
+    
+    def deselect_all_drivers():
+        st.session_state.temp_selected_drivers_tab2.clear()
+    
+    st.write("### 運転手を選択")  # "Select Drivers"
+    st.button("全員選択", on_click=select_all_drivers)
+    st.button("全員解除", on_click=deselect_all_drivers)
+    
+    # ✅ Use a dictionary to store checkbox states locally before updating session state
+    if "checkbox_states_drivers_tab2" not in st.session_state:
+        st.session_state.checkbox_states_drivers_tab2 = {d: d in st.session_state.temp_selected_drivers_tab2 for d in driver_tab2_list}
+    
+    for driver in driver_tab2_list:
+        key = f"driver_tab2_{driver}"
+        st.session_state.checkbox_states_drivers_tab2[driver] = st.checkbox(
+            driver, key=key, value=st.session_state.checkbox_states_drivers_tab2[driver]
+        )
+    
+    # ✅ Update API only when the button is pressed
+    if st.button("✅ 確定"):
+        st.session_state.selected_players_tab2 = {name for name, checked in st.session_state.checkbox_states_players_tab2.items() if checked}
+        st.session_state.selected_drivers_tab2 = {name for name, checked in st.session_state.checkbox_states_drivers_tab2.items() if checked}
+        
+        # 🔽 Call the API here, but only once
+        update_google_sheet(st.session_state.selected_players_tab2, st.session_state.selected_drivers_tab2)
+        
+        st.success("✅ 選択内容を保存しました！+")
 
     # ---- 運転手選択 (Driver Selection) ----
     st.subheader("🚘 運転手（チェックを入れてください）")
