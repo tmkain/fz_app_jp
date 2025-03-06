@@ -481,7 +481,7 @@ with tab2:
     
             # ✅ Calculate available seats before assignment
             available_seats = sum(int(df_sheet2[df_sheet2["運転手"] == driver]["定員"].values[0]) 
-                                  for driver in selected_driver_list if driver in df_sheet2["名前"].values)
+                                  for driver in selected_driver_list if driver in df_sheet2["運転手"].values)
     
             # ✅ Check if there are enough seats
             check_seat_availability(total_players, available_seats)
