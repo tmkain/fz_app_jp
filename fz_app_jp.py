@@ -403,8 +403,14 @@ with tab2:
     if "checkbox_states_players_tab2" not in st.session_state:
         st.session_state.checkbox_states_players_tab2 = {}
     
-    if not df_sheet2.empty:
-        players = df_sheet2[['名前', '学年', '親']].dropna().to_dict(orient="records")
+    @st.cache_data(ttl=300)  # ✅ Cache for 5 minutes (adjust as needed)
+    def get_cached_sheet2():
+        return df_sheet2  # Fetch Google Sheets data once and store in cache
+    
+    df_sheet2_cached = get_cached_sheet2()
+    
+    if not df_sheet2_cached.empty:
+        players = df_sheet2_cached[['名前', '学年', '親']].dropna().to_dict(orient="records")
     
         # ✅ FIXED: Store "全員選択" in temporary state instead of modifying selected_players_tab2
         if st.button("全員選択", key="select_all_players_tab2"):
