@@ -397,48 +397,29 @@ with tab2:
 
     # ---- 出席確認 (Player Attendance) ----
     st.subheader("⚾️ 出席確認（チェックを入れてください）")
-    
+
     if "selected_players_tab2" not in st.session_state:
         st.session_state.selected_players_tab2 = set()
-    if "checkbox_states_players_tab2" not in st.session_state:
-        st.session_state.checkbox_states_players_tab2 = {}
-    
-    @st.cache_data(ttl=300)  # ✅ Cache for 5 minutes (adjust as needed)
-    def get_cached_sheet2():
-        return df_sheet2  # Fetch Google Sheets data once and store in cache
 
-    st.write("Debug: df_sheet2_cached loaded, rows =", len(df_sheet2_cached))
-    df_sheet2_cached = get_cached_sheet2()
-    
-    if not df_sheet2_cached.empty:
-        players = df_sheet2_cached[['名前', '学年', '親']].dropna().to_dict(orient="records")
-    
-        # ✅ FIXED: Store "全員選択" in temporary state instead of modifying selected_players_tab2
+    if not df_sheet2.empty:
+        players = df_sheet2[['名前', '学年', '親']].dropna().to_dict(orient="records")
+
+        # ✅ FIXED: Properly working "全員選択" button
         if st.button("全員選択", key="select_all_players_tab2"):
-            st.session_state.checkbox_states_players_tab2 = {p["名前"]: True for p in players}
-    
+            st.session_state.selected_players_tab2 = {p["名前"] for p in players}
+            st.rerun()  # ✅ Force UI refresh to immediately reflect changes
+
         player_columns = st.columns(2)
         for i, player in enumerate(players):
             with player_columns[i % 2]:
                 key = f"player_tab2_{player['名前'].replace(' ', '_')}"
-    
-                # ✅ Initialize checkbox state if not set
-                if player["名前"] not in st.session_state.checkbox_states_players_tab2:
-                    st.session_state.checkbox_states_players_tab2[player["名前"]] = player["名前"] in st.session_state.selected_players_tab2
-    
-                # ✅ Use temporary state for checkboxes
-                st.write("Debug: Checkbox state updates happening")  # ✅ Add this line
-                st.session_state.checkbox_states_players_tab2[player["名前"]] = st.checkbox(
-                    f"{player['名前']}（{player['学年']}年）",
-                    value=st.session_state.checkbox_states_players_tab2[player["名前"]],
-                    key=key
-                )
-    
-        # ✅ 確定ボタンを追加
-        if st.button("✅ 確定 (Confirm Selection)", key="confirm_selected_players_tab2"):
-            st.session_state.selected_players_tab2 = {name for name, checked in st.session_state.checkbox_states_players_tab2.items() if checked}
-            st.success("✅ 選択内容を保存しました！")
-    
+                new_value = st.checkbox(f"{player['名前']}（{player['学年']}年）", value=player["名前"] in st.session_state.selected_players_tab2, key=key)
+
+                if new_value:
+                    st.session_state.selected_players_tab2.add(player['名前'])
+                else:
+                    st.session_state.selected_players_tab2.discard(player['名前'])
+
     else:
         st.warning("⚠️ 選手データがありません。")
 
