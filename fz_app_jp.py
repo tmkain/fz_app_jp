@@ -675,6 +675,15 @@ with tab3:
             selected_player_list = list(st.session_state.selected_players_tab3)
             selected_driver_list = list(st.session_state.selected_drivers_tab3)
 
+            # ✅ Define total players
+            total_players = len(selected_player_list)
+    
+            # ✅ Calculate available seats before assignment
+            available_seats = sum(int(df_sheet3[df_sheet3["運転手"] == driver]["定員"].values[0]) 
+                                  for driver in selected_driver_list if driver in df_sheet3["運転手"].values)
+    
+            # ✅ Check if there are enough seats
+            check_seat_availability(total_players, available_seats)
 
             # ✅ Organize players by grade
             player_grades_tab3 = {p["名前"]: int(p["学年"]) for p in players_tab3 if p["名前"] in selected_player_list}
