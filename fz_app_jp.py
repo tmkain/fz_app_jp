@@ -453,13 +453,18 @@ with tab2:
         st.session_state.selected_drivers_tab2.clear()
         st.rerun()
 
+    def check_seat_availability(total_players, available_seats):
+        if total_players > available_seats:
+            st.error(f"🚨 Not enough available car seats! {total_players} players selected but only {available_seats} seats available.")
+            st.stop()  # Stop execution to prevent further processing
+    
     # ---- 自動割り当てボタン ----
     if st.button("🖱️ 自動割り当て", key="assign_tab2"):
         if "sheet2_data" not in st.session_state or st.session_state["sheet2_data"] is None:
             sheet2_data = sheet2.get_all_values()
             st.session_state["sheet2_data"] = sheet2_data
             st.session_state["last_fetch_time_tab2"] = time.time()
-        
+    
         if not st.session_state.selected_players_tab2 or not st.session_state.selected_drivers_tab2:
             st.warning("⚠️ 選手と運転手を選択してください！")
         else:
@@ -467,9 +472,19 @@ with tab2:
                 st.session_state["sheet2_data"][1:], 
                 columns=st.session_state["sheet2_data"][0]
             ) if st.session_state["sheet2_data"] else pd.DataFrame(columns=["名前", "学年", "運転手", "定員", "親"])
-
+    
             selected_player_list = list(st.session_state.selected_players_tab2)
             selected_driver_list = list(st.session_state.selected_drivers_tab2)
+    
+            # ✅ Define total players
+            total_players = len(selected_player_list)
+    
+            # ✅ Calculate available seats before assignment
+            available_seats = sum(int(df_sheet2[df_sheet2["名前"] == driver]["定員"].values[0]) 
+                                  for driver in selected_driver_list if driver in df_sheet2["名前"].values)
+    
+            # ✅ Check if there are enough seats
+            check_seat_availability(total_players, available_seats)
 
             # ✅ Organize players by grade
             player_grades_tab2 = {p["名前"]: int(p["学年"]) for p in players if p["名前"] in selected_player_list}
