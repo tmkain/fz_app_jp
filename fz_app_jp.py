@@ -406,7 +406,8 @@ with tab2:
     @st.cache_data(ttl=300)  # ✅ Cache for 5 minutes (adjust as needed)
     def get_cached_sheet2():
         return df_sheet2  # Fetch Google Sheets data once and store in cache
-    
+
+    st.write("Debug: df_sheet2_cached loaded, rows =", len(df_sheet2_cached))
     df_sheet2_cached = get_cached_sheet2()
     
     if not df_sheet2_cached.empty:
@@ -426,6 +427,7 @@ with tab2:
                     st.session_state.checkbox_states_players_tab2[player["名前"]] = player["名前"] in st.session_state.selected_players_tab2
     
                 # ✅ Use temporary state for checkboxes
+                st.write("Debug: Checkbox state updates happening")  # ✅ Add this line
                 st.session_state.checkbox_states_players_tab2[player["名前"]] = st.checkbox(
                     f"{player['名前']}（{player['学年']}年）",
                     value=st.session_state.checkbox_states_players_tab2[player["名前"]],
