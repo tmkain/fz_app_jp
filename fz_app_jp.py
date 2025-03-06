@@ -651,6 +651,10 @@ with tab3:
         st.session_state.selected_drivers_tab3.clear()
         st.rerun()
 
+    def check_seat_availability(total_players, available_seats):
+        if total_players > available_seats:
+            st.error(f"🚨 利用可能な座席が足りません！ {total_players}人の選手を選択しましたが、利用可能な座席は{available_seats}席しかありません。")
+            st.stop()  # Stop execution to prevent further processing
 
     # ---- 自動割り当てボタン ----
     if st.button("🖱️ 自動割り当て", key="assign_tab3"):
