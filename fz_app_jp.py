@@ -455,7 +455,7 @@ with tab2:
 
     def check_seat_availability(total_players, available_seats):
         if total_players > available_seats:
-            st.error(f"🚨 Not enough available car seats! {total_players} players selected but only {available_seats} seats available.")
+            st.error(f"🚨 利用可能な座席が足りません！ {total_players}人の選手を選択しましたが、利用可能な座席は{available_seats}席しかありません。")
             st.stop()  # Stop execution to prevent further processing
     
     # ---- 自動割り当てボタン ----
