@@ -254,8 +254,8 @@ with tab1:
                     driver,
                     int(amount) if toll_cost != "未定" else "未定", 
                     "あり" if toll_round_trip or toll_one_way else "なし", 
-                    timestamp, # Add unique ID
-                    supplement  # ✅ Now properly updates "補足"
+                    supplement,
+                    timestamp,
                 ])
     
             sheet1.append_rows(new_entries, value_input_option="USER_ENTERED")
