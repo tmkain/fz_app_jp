@@ -7,6 +7,8 @@ import time
 import googlemaps
 import streamlit.components.v1 as components
 
+st.set_page_config(page_title="Fz車アプリ", page_icon="🚗")
+
 # ==============================
 # 🚀 Secure Full-Screen Login System
 # ==============================
@@ -441,8 +443,6 @@ with tab2:
         st.warning("⚠️ 選手データがありません。")
 
     # ---- 運転手選択 (Driver Selection) ----
-    st.subheader("🚘 運転手（チェックを入れてください）")
-
     if "selected_drivers_tab2" not in st.session_state:
         st.session_state.selected_drivers_tab2 = set()
 
@@ -615,14 +615,11 @@ df_sheet3 = pd.DataFrame(
     st.session_state["sheet3_data"][1:], 
     columns=st.session_state["sheet3_data"][0]
 )
-
     
 with tab3:
     st.header("🎯 車両割り当てシステム")
 
     # ---- 出席確認 (Player Attendance) ----
-    st.subheader("⚾️ 出席確認（チェックを入れてください）")
-
     if "selected_players_tab3" not in st.session_state:
         st.session_state.selected_players_tab3 = set()
 
@@ -634,40 +631,58 @@ with tab3:
             st.session_state.selected_players_tab3 = {p["名前"] for p in players_tab3}
             st.rerun()  # ✅ Force UI refresh to immediately reflect changes
 
-        player_columns = st.columns(2)
-        for i, player in enumerate(players_tab3):
-            with player_columns[i % 2]:
-                key = f"player_tab3_{player['名前'].replace(' ', '_')}"
-                new_value = st.checkbox(f"{player['名前']}（{player['学年']}年）", value=player["名前"] in st.session_state.selected_players_tab3, key=key)
+        with st.form(key="player selection form tab3"):
+            st.subheader("⚾️ 出席確認（チェックを入れてください）")
+            temp_selected_players_tab3 = set() # Temporary local storage
+            player columns = st.columns(2)
 
-                if new_value:
-                    st.session_state.selected_players_tab3.add(player['名前'])
-                else:
-                    st.session_state.selected_players_tab3.discard(player['名前'])
+            for i, player in enumerate(players_tab3):
+                with player_columns[i % 2]:
+                    key = f"player_tab3_{player['名前'].replace(' ', '_')}"
+                    new_checked = st.checkbox(f"{player['名前']}（{player['学年']}年）", value=player["名前"] in st.session_state.selected_players_tab3, key=key)
+    
+                    if new_checked:
+                        temp_selected_players_tab3.add(player['名前'])
+                    else:
+                        temp_selected_players_tab3.discard(player['名前'])
+
+            # This button submits the form (script only re-runs here)
+            submitted = st.form_submit_button("✅ 出席を確定する")
+            if submitted:
+                st.session_state.selected_players_tab3 = temp_selected_players_tab3.copy()
+                st.success("✅ 出席が保存されました！")
 
     else:
         st.warning("⚠️ 選手データがありません。")
 
     # ---- 運転手選択 (Driver Selection) ----
-    st.subheader("🚘 運転手（チェックを入れてください）")
-
     if "selected_drivers_tab3" not in st.session_state:
         st.session_state.selected_drivers_tab3 = set()
 
     if not df_sheet3.empty:
         drivers_tab3 = [d for d in df_sheet3[['運転手', '定員']].dropna().to_dict(orient="records") if d["運転手"] and d["定員"]]
 
-        driver_columns = st.columns(2)
-        for i, driver in enumerate(drivers_tab3):
-            with driver_columns[i % 2]:
-                key = f"driver_tab3_{driver['運転手'].replace(' ', '_')}_{i}"
-                checked = driver['運転手'] in st.session_state.selected_drivers_tab3
-                new_value = st.checkbox(f"{driver['運転手']}（{driver['定員']}人乗り）", value=checked, key=key)
-
-                if new_value:
-                    st.session_state.selected_drivers_tab3.add(driver['運転手'])
-                else:
-                    st.session_state.selected_drivers_tab3.discard(driver['運転手'])
+        with st.form(key="driver_selection_form_tab3"):
+            st.subheader("🚘 運転手（チェックを入れてください）")
+            temp_selected_drivers_tab3 = set() # Temporary local storage
+            driver_columns = st.columns(2)
+            
+            for i, driver in enumerate(drivers_tab3):
+                with driver_columns[i % 2]:
+                    key = f"driver_tab3_{driver['運転手'].replace(' ', '_')}_{i}"
+                    checked = driver['運転手'] in st.session_state.selected_drivers_tab3
+                    new_checked = st.checkbox(f"{driver['運転手']}（{driver['定員']}人乗り）", value=checked, key=key)
+    
+                    if new_checked:
+                        temp_selected_drivers_tab3.add(driver['運転手'])
+                    else:
+                        temp_selected_drivers_tab3.discard(driver['運転手'])
+            
+            # This button submits the form (script only re-runs here)
+            submitted = st.form_submit_button("✅ 運転手を確定する")
+            if submitted:
+                st.session_state.selected_players_tab3 = temp_selected_players_tab3.copy()
+                st.success("✅ 運転手が保存されました！")
 
     else:
         st.warning("⚠️ 運転手データがありません。")
