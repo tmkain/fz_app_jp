@@ -634,7 +634,7 @@ with tab3:
         with st.form(key="player selection form tab3"):
             st.subheader("⚾️ 出席確認（チェックを入れてください）")
             temp_selected_players_tab3 = set() # Temporary local storage
-            player columns = st.columns(2)
+            player_columns = st.columns(2)
 
             for i, player in enumerate(players_tab3):
                 with player_columns[i % 2]:
