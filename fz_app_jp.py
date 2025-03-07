@@ -163,6 +163,7 @@ with tab1:
     # ✅ Apply selections only when confirm button is clicked
     if st.button("✅ 運転手を確定する"):
         st.session_state.selected_drivers = st.session_state.temp_selected_drivers.copy()
+        st.session_state.confirmed_drivers = True  # ✅ Set confirmation flag
         st.success("✅ 選択が保存されました！")
     
     # ✅ Show distance input only AFTER confirming drivers
@@ -389,8 +390,6 @@ with tab1:
         st.session_state.toll_cost.clear()
         st.success("✅ ログアウトしました。")
         st.rerun()
-
-import time
 
 if False:  # ✅ This PREVENTS THE BLOCK FROM RUNNING - DELETE INDENT BEFORE TAB 2 WHEN REINSTATING
     
