@@ -145,17 +145,25 @@ with tab1:
     
     st.write("### 運転手を選択してください")
     columns = st.columns(3)
-    new_selected_drivers = set()
+    
+    # ✅ Ensure temporary selection state is initialized
+    if "temp_selected_drivers" not in st.session_state:
+        st.session_state.temp_selected_drivers = st.session_state.selected_drivers.copy()
     
     for i, driver in enumerate(driver_list):
         with columns[i % 3]:
-            if st.checkbox(driver, key=f"select_{driver}", value=(driver in st.session_state.selected_drivers)): #TOOK OUT TAB2 AT END OF DRIVER
-                new_selected_drivers.add(driver)
+            key = f"select_{driver}"
+            checked = st.checkbox(driver, key=key, value=(driver in st.session_state.temp_selected_drivers))
     
-    st.session_state.selected_drivers = new_selected_drivers
+            if checked:
+                st.session_state.temp_selected_drivers.add(driver)
+            else:
+                st.session_state.temp_selected_drivers.discard(driver)
     
-    if st.button("運転手を確定する"):
-        st.session_state.confirmed_drivers = True
+    # ✅ Apply selections only when confirm button is clicked
+    if st.button("✅ 運転手を確定する"):
+        st.session_state.selected_drivers = st.session_state.temp_selected_drivers.copy()
+        st.success("✅ 選択が保存されました！")
     
     # ✅ Show distance input only AFTER confirming drivers
     if st.session_state.confirmed_drivers:
