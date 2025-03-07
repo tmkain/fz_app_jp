@@ -377,23 +377,28 @@ with tab1:
             st.warning("🚨 変更された値がありません。更新するには値を入力してください。")
     
     if "last_submission_id" in st.session_state and st.button("⏪ 最後の送信を取り消す"):
-        records = sheet1.get_all_values()
-        if len(records) > 1:  # Ensure there are entries to delete
-            df = pd.DataFrame(records[1:], columns=records[0])  # Convert to DataFrame
+        df = load_from_sheets()  # ✅ Ensure we have the latest data
     
-            # ✅ Find the last submitted entry using the stored timestamp
-            last_entry_index = df[df["ID"] == st.session_state.last_submission_id].index
+        if "timestamp" in df.columns:
+            last_entry_index = df[df["timestamp"] == st.session_state.last_submission_id].index
     
             if not last_entry_index.empty:
-                row_number = last_entry_index[0] + 2  # Google Sheets is 1-indexed + header row
-                sheet1.delete_rows(row_number)
-                st.success("✅ 最後の送信を取り消しました！")
-                del st.session_state["last_submission_id"]  # ✅ Clear stored ID
-                st.rerun()
+                row_number = last_entry_index[0] + 2  # ✅ Convert to Google Sheets row number
+    
+                # ✅ Debugging Step
+                st.write(f"Debug: Last entry found at row {row_number}")
+    
+                if isinstance(row_number, int) and row_number > 1:
+                    sheet1.delete_rows(row_number)
+                    st.success("✅ 最後の送信を取り消しました！")
+                    del st.session_state["last_submission_id"]  # ✅ Clear stored ID
+                    st.rerun()
+                else:
+                    st.error(f"⚠️ 無効な行番号: {row_number}（1以上の整数が必要）")
             else:
                 st.error("⚠️ 取り消すエントリーが見つかりません！")
         else:
-            st.error("⚠️ シートにデータがありません！")
+            st.error("⚠️ エラー: シートに 'timestamp' 列が見つかりません！")
     
     
     # ==============================
