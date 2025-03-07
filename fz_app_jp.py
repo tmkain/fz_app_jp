@@ -71,8 +71,8 @@ with tab1:
     # ==============================
     if "date" not in st.session_state:
         st.session_state.date = datetime.today()
-    if "selected_drivers_tab2" not in st.session_state:
-        st.session_state.selected_drivers_tab2 = set()
+    if "selected_drivers" not in st.session_state:
+        st.session_state.selected_drivers = set()
     if "confirmed_drivers" not in st.session_state:
         st.session_state.confirmed_drivers = False
     if "one_way" not in st.session_state:
@@ -145,14 +145,14 @@ with tab1:
     
     st.write("### 運転手を選択してください")
     columns = st.columns(3)
-    new_selected_drivers_tab2 = set()
+    new_selected_drivers = set()
     
     for i, driver in enumerate(driver_list):
         with columns[i % 3]:
-            if st.checkbox(driver, key=f"select_{driver}", value=(driver in st.session_state.selected_drivers_tab2)):
-                new_selected_drivers_tab2.add(driver)
+            if st.checkbox(driver, key=f"select_{driver}", value=(driver in st.session_state.selected_drivers)): #TOOK OUT TAB2 AT END OF DRIVER
+                new_selected_drivers.add(driver)
     
-    st.session_state.selected_drivers_tab2 = new_selected_drivers_tab2
+    st.session_state.selected_drivers = new_selected_drivers
     
     if st.button("運転手を確定する"):
         st.session_state.confirmed_drivers = True
@@ -160,7 +160,7 @@ with tab1:
     # ✅ Show distance input only AFTER confirming drivers
     if st.session_state.confirmed_drivers:
         st.write("### 目的地を入力してください")
-        destination = st.text_input("目的地を入力（例: 大阪駅）", key="destination_input")
+        destination = st.text_input("目的地を入力（例: 霞第十小学校）", key="destination_input")
     
         if st.button("距離を計算"):
             if destination:
@@ -177,7 +177,7 @@ with tab1:
     # ✅ Move 高速道路 options outside the "距離を計算" button block
     #    → This ensures they don't disappear after clicking "距離を計算"
     if "distance" in st.session_state:
-        for driver in st.session_state.selected_drivers_tab2:
+        for driver in st.session_state.selected_drivers:
             st.session_state.one_way[driver] = st.checkbox(f"{driver} の一般道路片道", value=st.session_state.one_way.get(driver, False), key=f"one_way_{driver}")
             st.session_state.toll_round_trip[driver] = st.checkbox(f"{driver} の高速道路往復", value=st.session_state.toll_round_trip.get(driver, False), key=f"toll_round_trip_{driver}")
             st.session_state.toll_one_way[driver] = st.checkbox(f"{driver} の高速道路片道", value=st.session_state.toll_one_way.get(driver, False), key=f"toll_one_way_{driver}")
@@ -196,7 +196,7 @@ with tab1:
     # ==============================
     if st.button("クリア"):
         st.session_state.date = datetime.today()
-        st.session_state.selected_drivers_tab2.clear()
+        st.session_state.selected_drivers.clear()
         st.session_state.confirmed_drivers = False
         st.session_state.amount = 200
         st.session_state.one_way.clear()
@@ -212,11 +212,11 @@ with tab1:
         sheet1.append_rows(new_entries, value_input_option="USER_ENTERED")
     
     if st.button("送信", key="submit_button"):  
-        if st.session_state.selected_drivers_tab2:
+        if st.session_state.selected_drivers:
             game_date = st.session_state.date.strftime("%m/%d")
     
             new_entries = []
-            for driver in st.session_state.selected_drivers_tab2:
+            for driver in st.session_state.selected_drivers:
                 # ✅ Set defaults properly
                 one_way = st.session_state.one_way.get(driver, False)
                 toll_round_trip = st.session_state.toll_round_trip.get(driver, False)
@@ -372,7 +372,7 @@ with tab1:
     # ==============================
     if st.button("✅ 完了"):
         st.session_state.logged_in = False  # ✅ Logs the user out
-        st.session_state.selected_drivers_tab2.clear()
+        st.session_state.selected_drivers.clear()
         st.session_state.confirmed_drivers = False
         st.session_state.amount = 200
         st.session_state.one_way.clear()
