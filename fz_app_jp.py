@@ -127,8 +127,10 @@ with tab1:
             return 800
         elif distance_km < 40:
             return 1000
-        else:
+        elif distance_km < 50:
             return 1200
+        else:
+            return 1500
     
     
     # ==============================
