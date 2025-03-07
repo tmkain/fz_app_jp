@@ -378,22 +378,22 @@ with tab1:
     
     if "last_submission_id" in st.session_state and st.button("⏪ 最後の送信を取り消す"):
         records = sheet1.get_all_values()
-    if len(records) > 1:  # Ensure there are entries to delete
-        df = pd.DataFrame(records[1:], columns=records[0])  # Convert to DataFrame
-
-        # ✅ Find the last submitted entry using the stored timestamp
-        last_entry_index = df[df["ID"] == st.session_state.last_submission_id].index
-
-        if not last_entry_index.empty:
-            row_number = last_entry_index[0] + 2  # Google Sheets is 1-indexed + header row
-            sheet1.delete_rows(row_number)
-            st.success("✅ 最後の送信を取り消しました！")
-            del st.session_state["last_submission_id"]  # ✅ Clear stored ID
-            st.rerun()
+        if len(records) > 1:  # Ensure there are entries to delete
+            df = pd.DataFrame(records[1:], columns=records[0])  # Convert to DataFrame
+    
+            # ✅ Find the last submitted entry using the stored timestamp
+            last_entry_index = df[df["ID"] == st.session_state.last_submission_id].index
+    
+            if not last_entry_index.empty:
+                row_number = last_entry_index[0] + 2  # Google Sheets is 1-indexed + header row
+                sheet1.delete_rows(row_number)
+                st.success("✅ 最後の送信を取り消しました！")
+                del st.session_state["last_submission_id"]  # ✅ Clear stored ID
+                st.rerun()
+            else:
+                st.error("⚠️ 取り消すエントリーが見つかりません！")
         else:
-            st.error("⚠️ 取り消すエントリーが見つかりません！")
-    else:
-        st.error("⚠️ シートにデータがありません！")
+            st.error("⚠️ シートにデータがありません！")
     
     
     # ==============================
