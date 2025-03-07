@@ -56,8 +56,8 @@ client = gspread.authorize(creds)
 SHEET_ID = "1upehCYwnGEcKg_zVQG7jlnNUykFmvNbuAtnxzqvSEcA"
 spreadsheet = client.open_by_key(SHEET_ID)
 sheet1 = spreadsheet.worksheet("Sheet1")  # 🚗 車代管理
-sheet2 = spreadsheet.worksheet("Sheet2")  # 🎯 車両割り当て
-sheet3 = spreadsheet.worksheet("Sheet3")  # 🎯 Tab 3 Data
+sheet2 = spreadsheet.worksheet("Sheet2")  # 🎯 高：車両割り当て
+sheet3 = spreadsheet.worksheet("Sheet3")  # 🎯 低：車両割り当て
 
 # ==============================
 # 🔹 Create Tabs for Features
@@ -222,7 +222,7 @@ with tab1:
     
     if st.button("送信", key="submit_button"):  
         if st.session_state.selected_drivers:
-            game_date = st.session_state.date.strftime("%m/%d")
+            game_date = st.session_state.date.strftime("%Y-%m-%d")
             timestamp = datetime.now().strftime("%Y%m%d%H%M%S") # Unique ID for transmission
     
             new_entries = []
@@ -250,11 +250,11 @@ with tab1:
                 supplement = "未定" if toll_cost == "未定" else ""
     
                 new_entries.append([
-                    timestamp, # Add unique ID
-                    game_date,
-                    driver, 
+                    game_date, 
+                    driver,
                     int(amount) if toll_cost != "未定" else "未定", 
                     "あり" if toll_round_trip or toll_one_way else "なし", 
+                    timestamp, # Add unique ID
                     supplement  # ✅ Now properly updates "補足"
                 ])
     
@@ -266,7 +266,7 @@ with tab1:
         def load_from_sheets():
             records = sheet1.get_all_values()
         
-            required_columns = ["日付", "名前", "金額", "高速道路", "補足"]
+            required_columns = ["日付", "名前", "金額", "高速道路", "補足", "ID"]
         
             # ✅ If the sheet is empty or missing headers, return a DataFrame with correct headers
             if not records or len(records) < 2:
