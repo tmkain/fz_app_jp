@@ -144,27 +144,25 @@ with tab1:
                    "末田", "芳本", "鈴木", "山田", "佐久間", "今井", "西川"]
     
     st.write("### 運転手を選択してください")
-    columns = st.columns(3)
     
-    # ✅ Ensure temporary selection state is initialized
-    if "temp_selected_drivers" not in st.session_state:
-        st.session_state.temp_selected_drivers = st.session_state.selected_drivers.copy()
+    # ✅ Use st.form to prevent script re-runs when clicking checkboxes
+    with st.form(key="driver_selection_form"):
+        selected_drivers = set()  # Temporary local storage
+        columns = st.columns(3)
     
-    for i, driver in enumerate(driver_list):
-        with columns[i % 3]:
-            key = f"select_{driver}"
-            checked = st.checkbox(driver, key=key, value=(driver in st.session_state.temp_selected_drivers))
+        for i, driver in enumerate(driver_list):
+            with columns[i % 3]:
+                key = f"select_{driver}"
+                checked = st.checkbox(driver, key=key, value=(driver in st.session_state.get("selected_drivers", set())))
+                if checked:
+                    selected_drivers.add(driver)
     
-            if checked:
-                st.session_state.temp_selected_drivers.add(driver)
-            else:
-                st.session_state.temp_selected_drivers.discard(driver)
-    
-    # ✅ Apply selections only when confirm button is clicked
-    if st.button("✅ 運転手を確定する"):
-        st.session_state.selected_drivers = st.session_state.temp_selected_drivers.copy()
-        st.session_state.confirmed_drivers = True  # ✅ Set confirmation flag
-        st.success("✅ 選択が保存されました！")
+        # ✅ This button submits the form (script only reruns here)
+        submitted = st.form_submit_button("✅ 運転手を確定する")
+        if submitted:
+            st.session_state.selected_drivers = selected_drivers  # ✅ Save selections
+            st.session_state.confirmed_drivers = True  # ✅ Mark confirmation
+            st.success("✅ 選択が保存されました！")
     
     # ✅ Show distance input only AFTER confirming drivers
     if st.session_state.confirmed_drivers:
