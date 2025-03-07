@@ -428,7 +428,7 @@ with tab2:
 
                     if new_checked:
                         temp_selected_players_tab2.add(player["名前"])
-                    else
+                    else:
                         temp_selected_players_tab2.discard(player["名前"])
 
             # ✅ This button submits the form (script only re-runs here)
