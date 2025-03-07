@@ -706,7 +706,7 @@ with tab3:
             st.session_state["last_fetch_time_tab3"] = time.time()
 
         if not st.session_state.selected_players_tab3 or not st.session_state.selected_drivers_tab3:
-            st.warning("⚠️ 選手と運転手を選択してください！")
+            st.warning("⚠️ 選手と運転手を選択してください。")
             
         else:
             df_sheet3 = pd.DataFrame(
