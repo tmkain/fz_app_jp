@@ -259,26 +259,26 @@ with tab1:
             st.success("✅ データが保存されました！")
             st.rerun()
     
-    def load_from_sheets():
-        records = sheet1.get_all_values()
-    
-        required_columns = ["日付", "名前", "金額", "高速道路", "補足"]
-    
-        # ✅ If the sheet is empty or missing headers, return a DataFrame with correct headers
-        if not records or len(records) < 2:
-            return pd.DataFrame(columns=required_columns)
-    
-        df = pd.DataFrame(records[1:], columns=records[0])
-    
-        # ✅ Ensure all required columns exist
-        for col in required_columns:
-            if col not in df.columns:
-                df[col] = ""  # Default missing columns to an empty string
-    
-        df["金額"] = pd.to_numeric(df["金額"], errors="coerce").fillna(0).astype(int)
-        df["日付"] = pd.to_datetime(df["日付"], errors="coerce").dt.strftime("%Y-%m-%d")
-    
-        return df
+        def load_from_sheets():
+            records = sheet1.get_all_values()
+        
+            required_columns = ["日付", "名前", "金額", "高速道路", "補足"]
+        
+            # ✅ If the sheet is empty or missing headers, return a DataFrame with correct headers
+            if not records or len(records) < 2:
+                return pd.DataFrame(columns=required_columns)
+        
+            df = pd.DataFrame(records[1:], columns=records[0])
+        
+            # ✅ Ensure all required columns exist
+            for col in required_columns:
+                if col not in df.columns:
+                    df[col] = ""  # Default missing columns to an empty string
+        
+            df["金額"] = pd.to_numeric(df["金額"], errors="coerce").fillna(0).astype(int)
+            df["日付"] = pd.to_datetime(df["日付"], errors="coerce").dt.strftime("%Y-%m-%d")
+        
+            return df
     
     # ==============================
     # Monthly Summary Section
