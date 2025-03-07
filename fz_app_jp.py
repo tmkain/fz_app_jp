@@ -428,6 +428,8 @@ with tab2:
 
                     if new_checked:
                         temp_selected_players_tab2.add(player["名前"])
+                    else
+                        temp_selected_players_tab2.discard(player["名前"])
 
             # ✅ This button submits the form (script only re-runs here)
             submitted = st.form_submit_button("✅ 出席を確定する")
@@ -447,17 +449,27 @@ with tab2:
     if not df_sheet2.empty:
         drivers = [d for d in df_sheet2[['運転手', '定員']].dropna().to_dict(orient="records") if d["運転手"] and d["定員"]]
 
-        driver_columns = st.columns(2)
-        for i, driver in enumerate(drivers):
-            with driver_columns[i % 2]:
-                key = f"driver_tab2_{driver['運転手'].replace(' ', '_')}_{i}"
-                checked = driver['運転手'] in st.session_state.selected_drivers_tab2
-                new_value = st.checkbox(f"{driver['運転手']}（{driver['定員']}人乗り）", value=checked, key=key)
+        with st.form(key="driver_selection_form_tab2"):
+            st.subheader("⚾️ 運転手確認（チェックを入れてください）")
+            temp_selected_drivers_tab2 = set()  # ✅ Temporary local storage
+            driver_columns = st.columns(2)
 
-                if new_value:
-                    st.session_state.selected_drivers_tab2.add(driver['運転手'])
-                else:
-                    st.session_state.selected_drivers_tab2.discard(driver['運転手'])
+            for i, driver in enumerate(drivers):
+                with driver_columns[i % 2]:
+                    key = f"driver_tab2_{driver['運転手'].replace(' ', '_')}_{i}"
+                    checked = driver['運転手'] in st.session_state.selected_drivers_tab2
+                    new_checked = st.checkbox(f"{driver['運転手']}（{driver['定員']}人乗り）", value=checked, key=key)
+    
+                    if new_checked:
+                        temp_selected_drivers_tab2.add(driver['運転手'])
+                    else:
+                        temp_selected_drivers_tab2.discard(driver['運転手'])  # ✅ Ensure unchecked drivers are removed
+
+            # ✅ This button submits the form (script only re-runs here)
+            submitted = st.form_submit_button("✅ 運転手を確定する")
+            if submitted:
+                st.session_state.selected_drivers_tab2 = temp_selected_drivers_tab2.copy()
+                st.success("✅ 運転手が保存されました！")
 
     else:
         st.warning("⚠️ 運転手データがありません。")
