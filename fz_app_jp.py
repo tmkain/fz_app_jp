@@ -440,7 +440,7 @@ with tab2:
                 st.success("✅ 出席が保存されました！")
 
     else:
-        st.warning("⚠️ 選手データがありません。")
+        st.warning("⚠️ 選手と運転手を選択・確定してください。")
 
     # ---- 運転手選択 (Driver Selection) ----
     if "selected_drivers_tab2" not in st.session_state:
@@ -472,7 +472,7 @@ with tab2:
                 st.success("✅ 運転手が保存されました！")
 
     else:
-        st.warning("⚠️ 運転手データがありません。")
+        st.warning("⚠️ 選手と運転手を選択・確定してください。")
 
     # ---- クリアボタン (Clear All Selections) ----
     if st.button("🧹 クリア", key="clear_tab2"):
@@ -493,7 +493,7 @@ with tab2:
             st.session_state["last_fetch_time_tab2"] = time.time()
     
         if not st.session_state.selected_players_tab2 or not st.session_state.selected_drivers_tab2:
-            st.warning("⚠️ 選手と運転手を選択してください！")
+            st.warning("⚠️ 選手と運転手を選択・確定してください。")
         else:
             df_sheet2 = pd.DataFrame(
                 st.session_state["sheet2_data"][1:], 
@@ -653,7 +653,7 @@ with tab3:
                 st.success("✅ 出席が保存されました！")
 
     else:
-        st.warning("⚠️ 選手データがありません。")
+        st.warning("⚠️ 選手と運転手を選択・確定してください。")
 
     # ---- 運転手選択 (Driver Selection) ----
     if "selected_drivers_tab3" not in st.session_state:
@@ -685,7 +685,7 @@ with tab3:
                 st.success("✅ 運転手が保存されました！")
 
     else:
-        st.warning("⚠️ 運転手データがありません。")
+        st.warning("⚠️ 選手と運転手を選択・確定してください。")
 
     # ---- クリアボタン (Clear All Selections) ----
     if st.button("🧹 クリア", key="clear_tab3"):
