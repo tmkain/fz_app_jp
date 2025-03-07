@@ -338,7 +338,7 @@ with tab1:
             updated_values[(index, col)] = user_input.strip()
     
     # ✅ Update Google Sheets when "更新" button is clicked
-    if st.button("更新", key="update_pending"):
+    if st.button("未定だった高速料金を更新", key="update_pending"):
         if len(updated_values) > 0:  # ✅ Ensure `updated_values` exists before proceeding
             all_records = sheet1.get_all_values()
     
