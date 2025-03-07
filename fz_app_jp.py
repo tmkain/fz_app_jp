@@ -223,6 +223,7 @@ with tab1:
     if st.button("送信", key="submit_button"):  
         if st.session_state.selected_drivers:
             game_date = st.session_state.date.strftime("%m/%d")
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S") # Unique ID for transmission
     
             new_entries = []
             for driver in st.session_state.selected_drivers:
@@ -249,14 +250,16 @@ with tab1:
                 supplement = "未定" if toll_cost == "未定" else ""
     
                 new_entries.append([
-                    st.session_state.date.strftime("%Y-%m-%d"), 
+                    timestamp, # Add unique ID
+                    game date,
                     driver, 
                     int(amount) if toll_cost != "未定" else "未定", 
                     "あり" if toll_round_trip or toll_one_way else "なし", 
                     supplement  # ✅ Now properly updates "補足"
                 ])
     
-            append_data(new_entries)
+            sheet1.append_rows(new_entries, value_input_option="USER_ENTERED")
+            st.session_state.last_submission_id = timestamp # Store last submission
             st.success("✅ データが保存されました！")
             st.rerun()
     
@@ -373,7 +376,24 @@ with tab1:
         else:
             st.warning("🚨 変更された値がありません。更新するには値を入力してください。")
     
-    
+    if "last_submission_id" in st.session_state and st.button("⏪ 最後の送信を取り消す"):
+    records = sheet1.get_all_values()
+    if len(records) > 1:  # Ensure there are entries to delete
+        df = pd.DataFrame(records[1:], columns=records[0])  # Convert to DataFrame
+
+        # ✅ Find the last submitted entry using the stored timestamp
+        last_entry_index = df[df["ID"] == st.session_state.last_submission_id].index
+
+        if not last_entry_index.empty:
+            row_number = last_entry_index[0] + 2  # Google Sheets is 1-indexed + header row
+            sheet1.delete_rows(row_number)
+            st.success("✅ 最後の送信を取り消しました！")
+            del st.session_state["last_submission_id"]  # ✅ Clear stored ID
+            st.rerun()
+        else:
+            st.error("⚠️ 取り消すエントリーが見つかりません！")
+    else:
+        st.error("⚠️ シートにデータがありません！")
     
     
     # ==============================
