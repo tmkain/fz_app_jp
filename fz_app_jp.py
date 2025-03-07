@@ -251,7 +251,7 @@ with tab1:
     
                 new_entries.append([
                     timestamp, # Add unique ID
-                    game date,
+                    game_date,
                     driver, 
                     int(amount) if toll_cost != "未定" else "未定", 
                     "あり" if toll_round_trip or toll_one_way else "なし", 
