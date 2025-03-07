@@ -583,8 +583,6 @@ if False:  # ✅ This PREVENTS THE BLOCK FROM RUNNING - DELETE INDENT BEFORE TAB
                     """
                     components.html(copy_script, height=50)
 
-if False:  # ✅ This PREVENTS THE BLOCK FROM RUNNING
-
     # ---- TAB 3: 車両割り当て (New Player-to-Car Assignment) ----
     if "sheet3_data" not in st.session_state:
         st.session_state["sheet3_data"] = sheet3.get_all_values()
