@@ -377,7 +377,7 @@ with tab1:
             st.warning("🚨 変更された値がありません。更新するには値を入力してください。")
     
     if "last_submission_id" in st.session_state and st.button("⏪ 最後の送信を取り消す"):
-    records = sheet1.get_all_values()
+        records = sheet1.get_all_values()
     if len(records) > 1:  # Ensure there are entries to delete
         df = pd.DataFrame(records[1:], columns=records[0])  # Convert to DataFrame
 
